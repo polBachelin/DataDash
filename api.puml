@@ -1,0 +1,32 @@
+@startuml Dashboard Service
+
+abstract class Chart {
+	-name : string
+	-data : Data
+}
+
+class Data {
+	-x : string
+	-y : number
+}
+
+class Line implements Chart {}
+
+class Bar implements Chart {}
+
+class Area implements Chart {}
+
+class Scatter implements Chart {}
+
+class Pie implements Chart {}
+
+class Bubble implements Chart {}
+
+class Radar implements Chart {}
+
+class Polar implements Chart {}
+
+
+Data <|-- Chart
+
+@enduml
