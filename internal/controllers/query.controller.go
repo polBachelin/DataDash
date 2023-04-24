@@ -1,5 +1,7 @@
 package controllers
 
+import "github.com/gin-gonic/gin"
+
 type Query struct {
 	Measures       []string        `json:"measures"`
 	Dimensions     []string        `json:"dimensions"`

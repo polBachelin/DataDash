@@ -1,0 +1,14 @@
+blocks:
+  - name: Stories
+    sql: SELECT * FROM stories
+    measures:
+      - name: count
+        sql: id
+        type: count
+    dimensions:
+      - name: category
+        sql: category
+        type: string
+      - name: isDraft
+        sql: isDraft
+        type: boolean
