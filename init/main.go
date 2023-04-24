@@ -1,6 +1,8 @@
 package main
 
 import (
+	"dashboard/internal/routes"
+
 	"github.com/gin-gonic/gin"
 )
 
@@ -19,8 +21,9 @@ func CORS() gin.HandlerFunc {
 }
 
 func main() {
+
 	r := gin.Default()
 	r.Use(CORS())
-	//routes.Setup(r)
+	routes.Setup(r)
 	r.Run()
 }

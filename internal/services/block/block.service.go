@@ -3,6 +3,8 @@ package block
 import (
 	"fmt"
 	"io/ioutil"
+	"log"
+	"path/filepath"
 
 	"gopkg.in/yaml.v2"
 )
@@ -32,7 +34,7 @@ type Dimensions struct {
 	Type string `yaml:"type"`
 }
 
-func ReadFile(filename string) (*FileData, error) {
+func ReadBlockFile(filename string) (*FileData, error) {
 	buf, err := ioutil.ReadFile(filename)
 	if err != nil {
 		return nil, err
@@ -43,4 +45,21 @@ func ReadFile(filename string) (*FileData, error) {
 		return nil, fmt.Errorf("Error in file %s: %v", filename, err)
 	}
 	return c, err
+}
+
+func ReadAllBlocks(directory string) ([]*FileData, error) {
+	entries, err := ioutil.ReadDir(directory)
+	if err != nil {
+		log.Fatalf("Error in directory: %v", err)
+		return nil, err
+	}
+	data := make([]*FileData, 0, len(entries))
+	for _, e := range entries {
+		block, err := ReadBlockFile(filepath.Join(directory, e.Name()))
+		if err != nil {
+			return data, err
+		}
+		data = append(data, block)
+	}
+	return data, err
 }
