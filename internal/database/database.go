@@ -44,3 +44,7 @@ func GetDatabaseConnection() *mongo.Database {
 	}
 	return db.db
 }
+
+func GetCollection(name string) *mongo.Collection {
+	return GetDatabaseConnection().Collection(name)
+}

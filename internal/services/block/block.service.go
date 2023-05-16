@@ -1,12 +1,7 @@
 package block
 
 import (
-	"fmt"
-	"io/ioutil"
-	"log"
-	"path/filepath"
-
-	"gopkg.in/yaml.v2"
+	"golang.org/x/exp/slices"
 )
 
 var SCHEMA_PATH = "./schema/"
@@ -34,32 +29,13 @@ type Dimensions struct {
 	Type string `yaml:"type"`
 }
 
-func ReadBlockFile(filename string) (*FileData, error) {
-	buf, err := ioutil.ReadFile(filename)
-	if err != nil {
-		return nil, err
-	}
-	c := &FileData{}
-	err = yaml.Unmarshal(buf, c)
-	if err != nil {
-		return nil, fmt.Errorf("Error in file %s: %v", filename, err)
-	}
-	return c, err
-}
-
-func ReadAllBlocks(directory string) ([]*FileData, error) {
-	entries, err := ioutil.ReadDir(directory)
-	if err != nil {
-		log.Fatalf("Error in directory: %v", err)
-		return nil, err
-	}
-	data := make([]*FileData, 0, len(entries))
-	for _, e := range entries {
-		block, err := ReadBlockFile(filepath.Join(directory, e.Name()))
-		if err != nil {
-			return data, err
+func GetBlockFromName(name string) *BlockData {
+	blockInstance := GetInstance()
+	for _, blockData := range blockInstance.Blocks {
+		b := slices.IndexFunc(blockData.Blocks, func(data BlockData) bool { return data.Name == name })
+		if b != -1 {
+			return &blockData.Blocks[b]
 		}
-		data = append(data, block)
 	}
-	return data, err
+	return nil
 }

@@ -1,9 +1,9 @@
 blocks:
   - name: Stories
-    sql: SELECT * FROM stories
+    sql: Stories
     measures:
       - name: count
-        sql: id
+        sql: _id
         type: count
     dimensions:
       - name: category
