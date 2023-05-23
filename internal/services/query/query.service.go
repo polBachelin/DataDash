@@ -1,11 +1,14 @@
 package query
 
 import (
+	"context"
+	"dashboard/internal/database"
 	blockService "dashboard/internal/services/block"
 	"log"
 	"strings"
 
 	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/mongo"
 	"golang.org/x/exp/slices"
 )
 
@@ -78,7 +81,7 @@ func checkName(name string) bool {
 	return false
 }
 
-func handleMeasure(block blockService.BlockData, measureName string, collectionName string) bson.D {
+func handleMeasure(block blockService.BlockData, measureName string) bson.D {
 	measureIndex := slices.IndexFunc(block.Measures, func(data blockService.Measures) bool { return data.Name == measureName })
 	if measureIndex == -1 {
 		return nil
@@ -87,12 +90,32 @@ func handleMeasure(block blockService.BlockData, measureName string, collectionN
 	return measureFunc(block.Measures[measureIndex].Sql, block.Dimensions[0])
 }
 
+func executeStage(stage bson.D, collectionName string) []bson.M {
+	collection := database.GetCollection(collectionName)
+	res, err := collection.Aggregate(context.TODO(), mongo.Pipeline{stage})
+	if err != nil {
+		log.Fatal(err)
+		return nil
+	}
+	document := []bson.M{}
+	err = res.All(context.TODO(), &document)
+	if err != nil {
+		return nil
+	}
+	return document
+}
+
 func ParseQuery(query Query) []QueryResult {
+	//res := make([]QueryResult, 0)
+
 	for _, measure := range query.Measures {
+		//// Retrieving measure name from CUBE_MEMBER.MEMBER_NAME convention
 		n := strings.Split(measure, ".")
 		block := blockService.GetBlockFromName(n[0])
 		if block != nil {
-			handleMeasure(*block, n[1], n[0])
+			measureStage := handleMeasure(*block, n[1])
+			documents := executeStage(measureStage, n[0])
+			log.Println(documents)
 		}
 	}
 	return []QueryResult{}

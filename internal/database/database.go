@@ -2,21 +2,19 @@ package database
 
 import (
 	"context"
-	"dashboard/pkg/utils"
-	"log"
+	"fmt"
 
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
-var (
-	dbHost     = utils.GetEnvVar("DB_HOST", "0.0.0.0")
-	dbPort     = utils.GetEnvVar("DB_PORT", "27017")
-	dbUsername = utils.GetEnvVar("DB_USERNAME", "root")
-	dbPass     = utils.GetEnvVar("DB_PASSWORD", "pass12345")
-	dbName     = utils.GetEnvVar("DB_NAME", "dashboard")
-	uri        = "mongodb://" + dbUsername + ":" + dbPass + "@" + dbHost + ":" + dbPort
-)
+type DatabaseInfo struct {
+	DbHost     string `json:"db_host"`
+	DbPort     string `json:"db_port"`
+	DbUsername string `json:"db_username"`
+	DbPass     string `json:"db_pass"`
+	DbName     string `json:"db_name"`
+}
 
 type database struct {
 	db *mongo.Database
@@ -26,23 +24,34 @@ var databaseConnection = &database{
 	db: nil,
 }
 
+func BuildDatabaseUri(dbData DatabaseInfo) string {
+	return "mongodb://" + dbData.DbUsername + ":" + dbData.DbPass + "@" + dbData.DbHost + ":" + dbData.DbPort
+}
+
+func ConnectDatabase(dbData DatabaseInfo) *mongo.Database {
+	uri := BuildDatabaseUri(dbData)
+	fmt.Println(uri)
+	clientOptions := options.Client().ApplyURI(uri)
+	client, err := mongo.Connect(context.TODO(), clientOptions)
+	if err != nil {
+		fmt.Println(err)
+		return nil
+	}
+	err = client.Ping(context.TODO(), nil)
+	if err != nil {
+		fmt.Println(err)
+		return nil
+	}
+	databaseConnection.db = client.Database(dbData.DbName)
+	return databaseConnection.db
+}
+
 func GetDatabaseConnection() *mongo.Database {
 	if databaseConnection.db != nil {
 		return databaseConnection.db
 	}
-	clientOptions := options.Client().ApplyURI(uri)
-	client, err := mongo.Connect(context.TODO(), clientOptions)
-	if err != nil {
-		log.Fatal(err)
-	}
-	err = client.Ping(context.TODO(), nil)
-	if err != nil {
-		log.Fatal(err)
-	}
-	db := &database{
-		db: client.Database(dbName),
-	}
-	return db.db
+	fmt.Println("No database connection")
+	return nil
 }
 
 func GetCollection(name string) *mongo.Collection {
