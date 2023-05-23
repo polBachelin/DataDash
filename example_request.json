@@ -1,0 +1,25 @@
+{
+  "measures": ["Stories.count"],
+  "dimensions": ["Stories.category"],
+  "filters": [
+    {
+      "member": "Stories.isDraft",
+      "operator": "equals",
+      "values": ["No"]
+    }
+  ],
+  "time_dimensions": [
+    {
+      "dimension": "Stories.time",
+      "dateRange": ["2015-01-01", "2015-12-31"],
+      "granularity": "month"
+    }
+  ],
+  "limit": 100,
+  "offset": 50,
+  "order": {
+    "Stories.time": "asc",
+    "Stories.count": "desc"
+  },
+  "timezone": "America/Los_Angeles"
+}

@@ -2,6 +2,7 @@ package query
 
 import (
 	blockService "dashboard/internal/services/block"
+	"log"
 	"strings"
 
 	"go.mongodb.org/mongo-driver/bson"
@@ -31,18 +32,35 @@ type TimeDimension struct {
 }
 
 type Order struct {
+	DimensionName  []string `json:"dimension_name"`
+	DimensionOrder []string `json:"dimension_order"`
+	MeasureName    []string `json:"measure_name"`
+	MeasureOrder   []string `json:"measure_order"`
 }
 
-type MeasureTypeFunc func(sql string) bson.D
+type QueryResult struct {
+	Data []ResultData `json:"data"`
+}
+
+type ResultData struct {
+	Name          string `json:"name"`
+	MeasureType   string `json:"type"`
+	Measure       string `json:"result"`
+	Dimension     string `json:"dimension"`
+	DimensionType string `json:"dimension_type"`
+}
+
+type MeasureTypeFunc func(sql string, dimension blockService.Dimensions) bson.D
 
 var MeasureTypes = map[string]MeasureTypeFunc{
 	"count": MeasureCount,
 }
 
-func MeasureCount(sql string) bson.D {
+func MeasureCount(sql string, dimension blockService.Dimensions) bson.D {
 	stage := bson.D{{Key: "$group",
-		Value: bson.D{{Key: "_id", Value: sql}, {Key: "count", Value: bson.D{{Key: "$count", Value: "count"}}}},
+		Value: bson.D{{Key: "_id", Value: dimension.Name}, {Key: "count", Value: bson.D{{Key: "$sum", Value: 1}}}},
 	}}
+	log.Println(stage)
 	return stage
 }
 
@@ -66,16 +84,16 @@ func handleMeasure(block blockService.BlockData, measureName string, collectionN
 		return nil
 	}
 	measureFunc := MeasureTypes[block.Measures[measureIndex].Type]
-	return measureFunc(block.Measures[measureIndex].Sql)
+	return measureFunc(block.Measures[measureIndex].Sql, block.Dimensions[0])
 }
 
-func ParseQuery(query Query) {
+func ParseQuery(query Query) []QueryResult {
 	for _, measure := range query.Measures {
 		n := strings.Split(measure, ".")
 		block := blockService.GetBlockFromName(n[0])
 		if block != nil {
 			handleMeasure(*block, n[1], n[0])
 		}
-
 	}
+	return []QueryResult{}
 }

@@ -14,7 +14,7 @@ func TestBlock(t *testing.T) {
 		if b.Blocks[0].Name != "Stories" {
 			t.Errorf("Err -> \nWant %q\nGot %q", "Stories", b.Blocks[0].Name)
 		}
-		if b.Blocks[0].Sql != "SELECT * FROM stories" {
+		if b.Blocks[0].Sql != "Stories" {
 			t.Errorf("Err -> \nWant %q\nGot %q", "SELECT * FROM stories", b.Blocks[0].Sql)
 		}
 		if b.Blocks[0].Measures[0].Name != "count" {
