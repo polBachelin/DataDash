@@ -8,7 +8,6 @@ import (
 	"strings"
 
 	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/mongo"
 	"golang.org/x/exp/slices"
 )
 
@@ -53,16 +52,17 @@ type ResultData struct {
 	DimensionType string `json:"dimension_type"`
 }
 
-type MeasureTypeFunc func(sql string, dimension blockService.Dimensions) bson.D
+type MeasureTypeFunc func(sql string, dimension blockService.Dimensions) bson.M
 
 var MeasureTypes = map[string]MeasureTypeFunc{
 	"count": MeasureCount,
 }
 
-func MeasureCount(sql string, dimension blockService.Dimensions) bson.D {
-	stage := bson.D{{Key: "$group",
-		Value: bson.D{{Key: "_id", Value: dimension.Name}, {Key: "count", Value: bson.D{{Key: "$sum", Value: 1}}}},
-	}}
+func MeasureCount(sql string, dimension blockService.Dimensions) bson.M {
+	stage := bson.M{}
+	// stage := bson.D{{Key: "$group",
+	// 	Value: bson.D{{Key: "_id", Value: "$" + dimension.Sql}, {Key: "count", Value: bson.D{{Key: "$sum", Value: 1}}}},
+	// }}
 	log.Println(stage)
 	return stage
 }
@@ -81,7 +81,7 @@ func checkName(name string) bool {
 	return false
 }
 
-func handleMeasure(block blockService.BlockData, measureName string) bson.D {
+func handleMeasure(block blockService.BlockData, measureName string) bson.M {
 	measureIndex := slices.IndexFunc(block.Measures, func(data blockService.Measures) bool { return data.Name == measureName })
 	if measureIndex == -1 {
 		return nil
@@ -90,9 +90,9 @@ func handleMeasure(block blockService.BlockData, measureName string) bson.D {
 	return measureFunc(block.Measures[measureIndex].Sql, block.Dimensions[0])
 }
 
-func executeStage(stage bson.D, collectionName string) []bson.M {
+func executeStage(stage bson.M, collectionName string) []bson.M {
 	collection := database.GetCollection(collectionName)
-	res, err := collection.Aggregate(context.TODO(), mongo.Pipeline{stage})
+	res, err := collection.Aggregate(context.TODO(), []bson.M{stage})
 	if err != nil {
 		log.Fatal(err)
 		return nil
