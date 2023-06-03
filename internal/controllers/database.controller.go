@@ -22,4 +22,5 @@ func SetDatabase(c *gin.Context) {
 	if res == nil {
 		c.JSON(500, "Error connecting to database")
 	}
+	c.JSON(200, "Successfully connected to database")
 }

@@ -30,7 +30,6 @@ func BuildDatabaseUri(dbData DatabaseInfo) string {
 
 func ConnectDatabase(dbData DatabaseInfo) *mongo.Database {
 	uri := BuildDatabaseUri(dbData)
-	fmt.Println(uri)
 	clientOptions := options.Client().ApplyURI(uri)
 	client, err := mongo.Connect(context.TODO(), clientOptions)
 	if err != nil {

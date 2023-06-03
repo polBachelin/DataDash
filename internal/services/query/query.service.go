@@ -4,6 +4,7 @@ import (
 	"context"
 	"dashboard/internal/database"
 	blockService "dashboard/internal/services/block"
+	"fmt"
 	"log"
 	"strings"
 
@@ -59,10 +60,7 @@ var MeasureTypes = map[string]MeasureTypeFunc{
 }
 
 func MeasureCount(sql string, dimension blockService.Dimensions) bson.M {
-	stage := bson.M{}
-	// stage := bson.D{{Key: "$group",
-	// 	Value: bson.D{{Key: "_id", Value: "$" + dimension.Sql}, {Key: "count", Value: bson.D{{Key: "$sum", Value: 1}}}},
-	// }}
+	stage := bson.M{"$group": bson.M{"_id": "$" + dimension.Sql, "count": bson.M{"$sum": 1}}}
 	log.Println(stage)
 	return stage
 }
@@ -90,6 +88,10 @@ func handleMeasure(block blockService.BlockData, measureName string) bson.M {
 	return measureFunc(block.Measures[measureIndex].Sql, block.Dimensions[0])
 }
 
+func handleCleanup(block blockService.BlockData) []bson.M {
+	return []bson.M{}
+}
+
 func executeStage(stage bson.M, collectionName string) []bson.M {
 	collection := database.GetCollection(collectionName)
 	res, err := collection.Aggregate(context.TODO(), []bson.M{stage})
@@ -105,8 +107,8 @@ func executeStage(stage bson.M, collectionName string) []bson.M {
 	return document
 }
 
-func ParseQuery(query Query) []QueryResult {
-	//res := make([]QueryResult, 0)
+func ParseQuery(query Query) QueryResult {
+	var res QueryResult
 
 	for _, measure := range query.Measures {
 		//// Retrieving measure name from CUBE_MEMBER.MEMBER_NAME convention
@@ -115,8 +117,25 @@ func ParseQuery(query Query) []QueryResult {
 		if block != nil {
 			measureStage := handleMeasure(*block, n[1])
 			documents := executeStage(measureStage, n[0])
+			resData := buildResData(documents, n[0], n[1])
 			log.Println(documents)
+			res.Data = append(res.Data, resData...)
 		}
 	}
-	return []QueryResult{}
+	return QueryResult{}
+}
+
+// Name needs to contain [CUBE_NAME, MEASURE_NAME]
+func buildResData(documents []bson.M, blockName string, measureName string) []ResultData {
+	// resData := make([]ResultData, 0)
+	var data ResultData
+
+	for _, doc := range documents {
+		data.Name = blockName
+		data.Dimension = fmt.Sprintf("%v", doc["_id"])
+		data.Measure = fmt.Sprintf("%v", doc[measureName])
+		log.Println(doc)
+		log.Println(doc["count"])
+	}
+	return []ResultData{}
 }
