@@ -9,6 +9,8 @@ import (
 	"gopkg.in/yaml.v2"
 )
 
+//TODO: need to validate yaml file for required and optional fields
+
 func ReadBlockFile(filename string) (*FileData, error) {
 	buf, err := ioutil.ReadFile(filename)
 	if err != nil {
@@ -17,7 +19,7 @@ func ReadBlockFile(filename string) (*FileData, error) {
 	c := &FileData{}
 	err = yaml.Unmarshal(buf, c)
 	if err != nil {
-		return nil, fmt.Errorf("Error in file %s: %v", filename, err)
+		return nil, fmt.Errorf("error in file %s: %v", filename, err)
 	}
 	return c, err
 }

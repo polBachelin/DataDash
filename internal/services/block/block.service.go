@@ -13,8 +13,15 @@ type FileData struct {
 type BlockData struct {
 	Name       string       `yaml:"name"`
 	Sql        string       `yaml:"sql"`
+	Joins      []Join       `yaml:"join"`
 	Measures   []Measures   `yaml:"measures"`
 	Dimensions []Dimensions `yaml:"dimensions"`
+}
+
+type Join struct {
+	Name         string `yaml:"name"`
+	Sql          string `yaml:"sql"`
+	Relationship string `yaml:"relationship"`
 }
 
 type Measures struct {
@@ -24,9 +31,10 @@ type Measures struct {
 }
 
 type Dimensions struct {
-	Name string `yaml:"name"`
-	Sql  string `yaml:"sql"`
-	Type string `yaml:"type"`
+	Name       string `yaml:"name"`
+	Sql        string `yaml:"sql"`
+	Type       string `yaml:"type"`
+	PrimaryKey bool   `yaml:"primary_key"`
 }
 
 func GetBlockFromName(name string) *BlockData {

@@ -1,6 +1,9 @@
 blocks:
   - name: Stories
     sql: Stories
+    joins:
+      - name: Movies
+        sql: {Stories}.movie_id = {Movies}.id
     measures:
       - name: count
         sql: _id
@@ -12,3 +15,17 @@ blocks:
       - name: isDraft
         sql: isDraft
         type: boolean
+      - name: movie_id
+        type: string
+        sql: id
+        primary_key: true
+  - name: Movies
+    sql: Movies
+    measures:
+      - name: count
+        sql: _id
+        type: count
+    dimensions:
+      - name: release_date
+        sql: release_data
+        type: string

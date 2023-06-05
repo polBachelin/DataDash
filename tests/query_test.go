@@ -27,7 +27,7 @@ func TestQuery(t *testing.T) {
 	q.Order = query.Order{DimensionName: []string{"Stories.time"}, DimensionOrder: []string{"asc"}, MeasureName: []string{"Stories.count"}, MeasureOrder: []string{"desc"}}
 
 	t.Run("ParseQuery", func(t *testing.T) {
-		res := query.ParseQuery(q)
+		res, _ := query.ParseQuery(q)
 		log.Println(res)
 		if res.Data[0].DimensionType != "category" {
 			t.Errorf("Err -> \nWant %q\nGot %q", "category", res.Data[0].DimensionType)
@@ -43,4 +43,5 @@ func TestQuery(t *testing.T) {
 		}
 
 	})
+
 }
