@@ -1,6 +1,6 @@
 {
   "measures": ["Stories.count"],
-  "dimensions": ["Stories.category"],
+  "dimensions": ["Stories.category", "Movies.isDraft"],
   "filters": [
     {
       "member": "Stories.isDraft",

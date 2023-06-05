@@ -3,6 +3,7 @@ package tests
 import (
 	"dashboard/internal/database"
 	query "dashboard/internal/services/query"
+	"log"
 	"testing"
 )
 
@@ -16,7 +17,7 @@ func TestQuery(t *testing.T) {
 	connectDb()
 	q := query.Query{}
 	q.Measures = []string{"Stories.count"}
-	q.Dimensions = []string{"Stories.category"}
+	q.Dimensions = []string{"Stories.category", "Movies.time", "Stories.time"}
 	f := query.Filter{Member: "Stories.isDraft", Operator: "equals", Values: []string{"No"}}
 	q.Filters = []query.Filter{f}
 	timeDimension := query.TimeDimension{Dimension: "Stories.time", DateRange: []string{"2015-01-01", "2015-12-31"}, Granularity: "day"}
@@ -27,6 +28,7 @@ func TestQuery(t *testing.T) {
 
 	t.Run("ParseQuery", func(t *testing.T) {
 		res := query.ParseQuery(q)
+		log.Println(res)
 		if res.Data[0].DimensionType != "category" {
 			t.Errorf("Err -> \nWant %q\nGot %q", "category", res.Data[0].DimensionType)
 		}
