@@ -4,6 +4,7 @@ blocks:
     joins:
       - name: Movies
         sql: {Stories}.movie_id = {Movies}.id
+        relationship: one_to_one
     measures:
       - name: count
         sql: _id
