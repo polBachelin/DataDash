@@ -116,6 +116,7 @@ func ParseQuery(query Query) (QueryResult, error) {
 		if block == nil {
 			return QueryResult{}, errors.New("No block file found for name " + blockQuery.Name)
 		}
+
 	}
 	// if block != nil {
 	// 	measureStage := handleMeasure(*block, n[1])

@@ -34,7 +34,10 @@ func TestQuery(t *testing.T) {
 	q := getQueryObject()
 
 	t.Run("ParseQuery", func(t *testing.T) {
-		res, _ := query.ParseQuery(q)
+		res, err := query.ParseQuery(q)
+		if err != nil {
+			t.Fatalf("Err -> error during execution: %v", err)
+		}
 		log.Println(res)
 		if res.Data[0].DimensionType != "category" {
 			t.Errorf("Err -> \nWant %q\nGot %q", "category", res.Data[0].DimensionType)
