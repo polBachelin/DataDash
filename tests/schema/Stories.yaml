@@ -1,6 +1,6 @@
 blocks:
   - name: Stories
-    sql: SELECT * FROM stories
+    sql: Stories
     measures:
       - name: count
         sql: id

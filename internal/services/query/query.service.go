@@ -2,6 +2,7 @@ package query
 
 import (
 	blockService "dashboard/internal/services/block"
+	"dashboard/pkg/utils"
 	"errors"
 	"fmt"
 	"log"
@@ -66,29 +67,25 @@ func checkName(name string) bool {
 	return false
 }
 
-func getStringsWithBlockName(blockName string, arr []string) []string {
+func getStringsWithBlockName(blockName string, arr *[]string) []string {
 	res := make([]string, 0)
-	for _, v := range arr {
+	for i, v := range *arr {
 		if strings.HasPrefix(v, blockName) {
 			res = append(res, v)
+			*arr = utils.Remove(*arr, i)
 		}
 	}
 	return res
 }
 
-func getBlockQueriesFromQuery(query Query) []BlockQuery {
+func GetBlockQueriesFromQuery(query Query) []BlockQuery {
 	blockQueries := make([]BlockQuery, 0)
-	wholeLength := len(query.Dimensions) + len(query.Measures)
-	currentLength := 0
-	i := 0
 
-	for currentLength != wholeLength {
-		blockName := strings.Split(query.Dimensions[i], ".")[0]
-		dimensionInQuery := getStringsWithBlockName(blockName, query.Dimensions)
-		measuresInQuery := getStringsWithBlockName(blockName, query.Measures)
+	for len(query.Dimensions) > 0 {
+		blockName := strings.Split(query.Dimensions[0], ".")[0]
+		dimensionInQuery := getStringsWithBlockName(blockName, &query.Dimensions)
+		measuresInQuery := getStringsWithBlockName(blockName, &query.Measures)
 		blockQueries = append(blockQueries, buildBlockQuery(dimensionInQuery, measuresInQuery, blockName))
-		currentLength += len(dimensionInQuery) + len(measuresInQuery)
-		i++
 	}
 	return blockQueries
 }
@@ -109,7 +106,7 @@ func checkJoinFromQueries(blockQueries []BlockQuery) error {
 func ParseQuery(query Query) (QueryResult, error) {
 	var res QueryResult
 
-	blockQueries := getBlockQueriesFromQuery(query)
+	blockQueries := GetBlockQueriesFromQuery(query)
 	err := checkJoinFromQueries(blockQueries)
 	if err != nil {
 		return QueryResult{}, err

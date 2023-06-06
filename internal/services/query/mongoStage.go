@@ -18,7 +18,6 @@ var MeasureTypes = map[string]MeasureTypeFunc{
 
 func MeasureCount(sql string, dimension blockService.Dimensions) bson.M {
 	stage := bson.M{"$group": bson.M{"_id": "$" + dimension.Sql, "count": bson.M{"$sum": 1}}}
-	log.Println(stage)
 	return stage
 }
 

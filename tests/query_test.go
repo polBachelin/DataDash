@@ -5,6 +5,8 @@ import (
 	query "dashboard/internal/services/query"
 	"log"
 	"testing"
+
+	"golang.org/x/exp/slices"
 )
 
 // Need to connect to a test database
@@ -13,11 +15,10 @@ func connectDb() {
 	database.ConnectDatabase(data)
 }
 
-func TestQuery(t *testing.T) {
-	connectDb()
+func getQueryObject() query.Query {
 	q := query.Query{}
 	q.Measures = []string{"Stories.count"}
-	q.Dimensions = []string{"Stories.category", "Movies.time", "Stories.time"}
+	q.Dimensions = []string{"Stories.category", "Stories.time", "Movies.release_date"}
 	f := query.Filter{Member: "Stories.isDraft", Operator: "equals", Values: []string{"No"}}
 	q.Filters = []query.Filter{f}
 	timeDimension := query.TimeDimension{Dimension: "Stories.time", DateRange: []string{"2015-01-01", "2015-12-31"}, Granularity: "day"}
@@ -25,6 +26,12 @@ func TestQuery(t *testing.T) {
 	q.Limit = 100
 	q.Offset = 0
 	q.Order = query.Order{DimensionName: []string{"Stories.time"}, DimensionOrder: []string{"asc"}, MeasureName: []string{"Stories.count"}, MeasureOrder: []string{"desc"}}
+	return q
+}
+
+func TestQuery(t *testing.T) {
+	connectDb()
+	q := getQueryObject()
 
 	t.Run("ParseQuery", func(t *testing.T) {
 		res, _ := query.ParseQuery(q)
@@ -43,5 +50,22 @@ func TestQuery(t *testing.T) {
 		}
 
 	})
+}
 
+func TestBlockQuery(t *testing.T) {
+	q := getQueryObject()
+
+	t.Run("GetBlockQueriesFromQuery", func(t *testing.T) {
+		res := query.GetBlockQueriesFromQuery(q)
+		log.Println(res)
+		if res[0].Name != "Stories" {
+			t.Fatalf("Err -> \nWant %q\nGot %q", "Stories", res[0].Name)
+		}
+		if !slices.Contains(res[0].Dimensions, "category") {
+			t.Fatalf("Err -> \nWant %q\nGot %q", "category", res[0].Dimensions)
+		}
+		if !slices.Contains(res[1].Dimensions, "release_date") {
+			t.Fatalf("Err -> \nWant %q\nGot %q", "release_date", res[1].Dimensions)
+		}
+	})
 }
