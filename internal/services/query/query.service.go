@@ -146,8 +146,30 @@ func BuildGroupStageFromDimensions(dimensions []string) (bson.M, error) {
 	return bson.M{"$group": ids}, nil
 }
 
+func BuildFilterStage(filters Filter) (bson.M, error) {
+	stage := make(bson.M)
+
+	for _, filter := range filters {
+
+	}
+}
+
+func BuildAllFilters(filters []Filter) ([]bson.M, error) {
+	filterStages := make([]bson.M, len(filters))
+
+	for _, filter := range filters {
+		filterStage, err := BuildFilterStage(filter)
+		if err != nil {
+			return []bson.M{}, err
+		}
+		filterStages = append(filterStages, filterStage)
+	}
+	return filterStages, nil
+}
+
 func ParseQuery(query Query) (QueryResult, error) {
 	var res QueryResult
+	var stages []bson.M
 
 	blockQueries := GetBlockQueriesFromQuery(query)
 	err := checkJoinFromQueries(blockQueries)
@@ -155,8 +177,11 @@ func ParseQuery(query Query) (QueryResult, error) {
 		return QueryResult{}, err
 	}
 	groupStage, err := BuildGroupStageFromDimensions(query.Dimensions)
+	stages = append(stages, groupStage)
 	if err != nil {
-		return QueryResult{}, errors.New("could not build group stage: " + err)
+		return QueryResult{}, err
+	}
+	if len(query.Filters) > 0 {
 	}
 	//join := blockService.GetBlockJoinFromName(blockQueries[joinParentIndex])
 	// if block != nil {
