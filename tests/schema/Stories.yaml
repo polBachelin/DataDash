@@ -1,9 +1,14 @@
 blocks:
   - name: Stories
     sql: Stories
+    joins:
+      - name: Movies
+        local_field: movie_id
+        foreign_field: id
+        relationship: one_to_one
     measures:
       - name: count
-        sql: id
+        sql: _id
         type: count
     dimensions:
       - name: category
@@ -12,3 +17,20 @@ blocks:
       - name: isDraft
         sql: isDraft
         type: boolean
+      - name: movieId
+        type: string
+        sql: movie_id
+        primary_key: true
+      - name: time
+        type: string
+        sql: time
+  - name: Movies
+    sql: Movies
+    measures:
+      - name: count
+        sql: _id
+        type: count
+    dimensions:
+      - name: release_date
+        sql: release_date
+        type: string

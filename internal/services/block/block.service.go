@@ -1,6 +1,8 @@
 package block
 
 import (
+	"errors"
+
 	"golang.org/x/exp/slices"
 )
 
@@ -13,14 +15,15 @@ type FileData struct {
 type BlockData struct {
 	Name       string       `yaml:"name"`
 	Sql        string       `yaml:"sql"`
-	Joins      []Join       `yaml:"join"`
+	Joins      []Join       `yaml:"joins"`
 	Measures   []Measures   `yaml:"measures"`
 	Dimensions []Dimensions `yaml:"dimensions"`
 }
 
 type Join struct {
 	Name         string `yaml:"name"`
-	Sql          string `yaml:"sql"`
+	LocalField   string `yaml:"local_field"`
+	ForeignField string `yaml:"foreign_field"`
 	Relationship string `yaml:"relationship"`
 }
 
@@ -37,6 +40,7 @@ type Dimensions struct {
 	PrimaryKey bool   `yaml:"primary_key"`
 }
 
+// TODO optimize this with HashSet
 func GetBlockFromName(name string) *BlockData {
 	blockInstance := GetInstance()
 	for _, blockData := range blockInstance.Blocks {
@@ -46,4 +50,12 @@ func GetBlockFromName(name string) *BlockData {
 		}
 	}
 	return nil
+}
+
+func GetBlockJoinFromName(name string, block BlockData) (Join, error) {
+	join := slices.IndexFunc(block.Joins, func(data Join) bool { return data.Name == name })
+	if join != -1 {
+		return block.Joins[join], nil
+	}
+	return Join{}, errors.New("No join found for name: " + name)
 }

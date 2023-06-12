@@ -21,6 +21,22 @@ func MeasureCount(sql string, dimension blockService.Dimensions) bson.M {
 	return stage
 }
 
+func BuildGroupStage(block blockService.BlockData, joinChildIndex int, blockQuery BlockQuery) bson.M {
+	ids := make(bson.M)
+
+	log.Println(block.Dimensions)
+	for _, dimension := range blockQuery.Dimensions {
+		dimensionIndex := slices.IndexFunc(block.Dimensions, func(data blockService.Dimensions) bool { return data.Name == dimension })
+		log.Println("Dimension : " + dimension)
+		if dimensionIndex != -1 {
+			ids[dimension] = "$" + block.Dimensions[dimensionIndex].Sql
+		} else {
+			ids[block.Joins[joinChildIndex].Name] = "$" + block.Joins[joinChildIndex].LocalField
+		}
+	}
+	return bson.M{"$group": ids}
+}
+
 func handleMeasure(block blockService.BlockData, measureName string) bson.M {
 	measureIndex := slices.IndexFunc(block.Measures, func(data blockService.Measures) bool { return data.Name == measureName })
 	if measureIndex == -1 {

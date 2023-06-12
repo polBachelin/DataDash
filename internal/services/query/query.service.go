@@ -103,6 +103,49 @@ func checkJoinFromQueries(blockQueries []BlockQuery) error {
 	return nil
 }
 
+// This function return : joinParent, joinChild, error
+func findJoinParent(blockQueries []BlockQuery) (int, int, error) {
+	for i, blockQuery := range blockQueries {
+		block := blockService.GetBlockFromName(blockQuery.Name)
+		if block == nil {
+			return -1, -1, errors.New("no block file found for name " + blockQuery.Name)
+		}
+		joinFound := slices.IndexFunc(block.Joins, func(data blockService.Join) bool { return data.Name == blockQuery.Name })
+		if joinFound != -1 {
+			return i, joinFound, nil
+		}
+	}
+	return -1, -1, errors.New("no join parent found in block queries")
+}
+
+func BuildGroupStageFromDimensions(dimensions []string) (bson.M, error) {
+	ids := make(bson.M)
+	lastName := dimensions[0]
+
+	for _, dimension := range dimensions {
+		n := strings.Split(dimension, ".")
+		lastName = strings.Split(lastName, ".")[0]
+		block := blockService.GetBlockFromName(n[0])
+		if block == nil {
+			return bson.M{}, errors.New("no block found")
+		}
+		if lastName == n[0] {
+			dimIndex := slices.IndexFunc(block.Dimensions, func(data blockService.Dimensions) bool { return data.Name == n[1] })
+			ids[n[1]] = "$" + block.Dimensions[dimIndex].Sql
+		} else {
+			//if it was not found in dimensions check joins
+			lastBlock := blockService.GetBlockFromName(lastName)
+			join, err := blockService.GetBlockJoinFromName(n[0], *lastBlock)
+			if err != nil {
+				return bson.M{}, errors.New("could not find dimension and join from block :" + block.Name)
+			}
+			ids[join.Name] = "$" + join.LocalField
+		}
+		lastName = n[0]
+	}
+	return bson.M{"$group": ids}, nil
+}
+
 func ParseQuery(query Query) (QueryResult, error) {
 	var res QueryResult
 
@@ -111,13 +154,11 @@ func ParseQuery(query Query) (QueryResult, error) {
 	if err != nil {
 		return QueryResult{}, err
 	}
-	for _, blockQuery := range blockQueries {
-		block := blockService.GetBlockFromName(blockQuery.Name)
-		if block == nil {
-			return QueryResult{}, errors.New("No block file found for name " + blockQuery.Name)
-		}
-
+	groupStage, err := BuildGroupStageFromDimensions(query.Dimensions)
+	if err != nil {
+		return QueryResult{}, errors.New("could not build group stage: " + err)
 	}
+	//join := blockService.GetBlockJoinFromName(blockQueries[joinParentIndex])
 	// if block != nil {
 	// 	measureStage := handleMeasure(*block, n[1])
 	// 	documents := executeStage(measureStage, n[0])

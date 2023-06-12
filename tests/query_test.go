@@ -2,10 +2,12 @@ package tests
 
 import (
 	"dashboard/internal/database"
+	blockService "dashboard/internal/services/block"
 	query "dashboard/internal/services/query"
 	"log"
 	"testing"
 
+	"go.mongodb.org/mongo-driver/bson"
 	"golang.org/x/exp/slices"
 )
 
@@ -27,6 +29,35 @@ func getQueryObject() query.Query {
 	q.Offset = 0
 	q.Order = query.Order{DimensionName: []string{"Stories.time"}, DimensionOrder: []string{"asc"}, MeasureName: []string{"Stories.count"}, MeasureOrder: []string{"desc"}}
 	return q
+}
+
+func buildStoriesBlock() blockService.BlockData {
+	block := blockService.BlockData{
+		Name: "Stories",
+		Sql:  "Stories",
+		Joins: []blockService.Join{
+			{Name: "Movies", LocalField: "Stories.movie_id", ForeignField: "Movies.id", Relationship: "one_to_one"},
+		},
+		Measures: []blockService.Measures{
+			{Name: "count", Sql: "_id", Type: "count"},
+		},
+		Dimensions: []blockService.Dimensions{
+			{Name: "category", Sql: "category", Type: "string"},
+			{Name: "isDraft", Sql: "isDraft", Type: "boolean"},
+			{Name: "time", Sql: "time", Type: "string"},
+			{Name: "movieId", Sql: "id", Type: "string", PrimaryKey: true},
+		},
+	}
+	return block
+}
+
+func buildBlockQuery() query.BlockQuery {
+	blockQuery := query.BlockQuery{
+		Measure:    []string{"count"},
+		Dimensions: []string{"category", "time"},
+		Name:       "Stories",
+	}
+	return blockQuery
 }
 
 func TestQuery(t *testing.T) {
@@ -69,6 +100,22 @@ func TestBlockQuery(t *testing.T) {
 		}
 		if !slices.Contains(res[1].Dimensions, "release_date") {
 			t.Fatalf("Err -> \nWant %q\nGot %q", "release_date", res[1].Dimensions)
+		}
+	})
+}
+
+func TestBuildGroupStage(t *testing.T) {
+	q := getQueryObject()
+
+	t.Run("Correct build stage", func(t *testing.T) {
+		res, err := query.BuildGroupStageFromDimensions(q.Dimensions)
+		log.Println(res)
+		if err != nil {
+			t.Fatalf("Err -> \nReturned error: %v", err)
+		}
+		s := res["$group"].(bson.M)
+		if s["Movies"] != "$movie_id" {
+			t.Fatalf("Err -> \nWant %q\nGot %q", "movie_id", s["movieId"])
 		}
 	})
 }
