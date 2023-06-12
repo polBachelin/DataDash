@@ -146,27 +146,6 @@ func BuildGroupStageFromDimensions(dimensions []string) (bson.M, error) {
 	return bson.M{"$group": ids}, nil
 }
 
-func BuildFilterStage(filters Filter) (bson.M, error) {
-	stage := make(bson.M)
-
-	for _, filter := range filters {
-
-	}
-}
-
-func BuildAllFilters(filters []Filter) ([]bson.M, error) {
-	filterStages := make([]bson.M, len(filters))
-
-	for _, filter := range filters {
-		filterStage, err := BuildFilterStage(filter)
-		if err != nil {
-			return []bson.M{}, err
-		}
-		filterStages = append(filterStages, filterStage)
-	}
-	return filterStages, nil
-}
-
 func ParseQuery(query Query) (QueryResult, error) {
 	var res QueryResult
 	var stages []bson.M
@@ -177,19 +156,24 @@ func ParseQuery(query Query) (QueryResult, error) {
 		return QueryResult{}, err
 	}
 	groupStage, err := BuildGroupStageFromDimensions(query.Dimensions)
-	stages = append(stages, groupStage)
 	if err != nil {
 		return QueryResult{}, err
 	}
+	stages = append(stages, groupStage)
 	if len(query.Filters) > 0 {
+		filterStages, err := BuildAllFilters(query.Filters)
+		if err != nil {
+			return QueryResult{}, err
+		}
+		stages = append(stages, filterStages...)
 	}
-	//join := blockService.GetBlockJoinFromName(blockQueries[joinParentIndex])
-	// if block != nil {
-	// 	measureStage := handleMeasure(*block, n[1])
-	// 	documents := executeStage(measureStage, n[0])
-	// 	resData := buildResData(documents, n[0], n[1])
-	// 	res.Data = append(res.Data, resData...)
-	// }
+	if len(query.TimeDimensions) > 0 {
+		timeDimensionStage, err := BuildAllTimeDimensions(query.TimeDimensions)
+		if err != nil {
+			return QueryResult{}, err
+		}
+		stages = append(stages, timeDimensionStage...)
+	}
 	return res, nil
 }
 

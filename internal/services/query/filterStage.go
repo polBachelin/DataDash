@@ -1,6 +1,11 @@
 package query
 
-import "go.mongodb.org/mongo-driver/bson"
+import (
+	"errors"
+	"strings"
+
+	"go.mongodb.org/mongo-driver/bson"
+)
 
 type FilterTypeFunc func(member string, value string) bson.M
 
@@ -16,4 +21,28 @@ func FilterEquals(member string, value string) bson.M {
 		v = true
 	}
 	return bson.M{member: v}
+}
+
+func BuildFilterStage(filter Filter) (bson.M, error) {
+	member := strings.Split(filter.Member, ".")[0]
+
+	filterFunc, ok := FilterTypes[filter.Operator]
+	if !ok {
+		return bson.M{}, errors.New("no filter with type :" + filter.Operator)
+	}
+	stage := filterFunc(member, filter.Values[0])
+	return bson.M{"$match": stage}, nil
+}
+
+func BuildAllFilters(filters []Filter) ([]bson.M, error) {
+	filterStages := make([]bson.M, len(filters))
+
+	for _, filter := range filters {
+		filterStage, err := BuildFilterStage(filter)
+		if err != nil {
+			return []bson.M{}, err
+		}
+		filterStages = append(filterStages, filterStage)
+	}
+	return filterStages, nil
 }
