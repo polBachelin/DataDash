@@ -24,7 +24,7 @@ func FilterEquals(member string, value string) bson.M {
 }
 
 func BuildFilterStage(filter Filter) (bson.M, error) {
-	member := strings.Split(filter.Member, ".")[0]
+	member := strings.Split(filter.Member, ".")[1]
 
 	filterFunc, ok := FilterTypes[filter.Operator]
 	if !ok {
@@ -37,12 +37,12 @@ func BuildFilterStage(filter Filter) (bson.M, error) {
 func BuildAllFilters(filters []Filter) ([]bson.M, error) {
 	filterStages := make([]bson.M, len(filters))
 
-	for _, filter := range filters {
+	for i, filter := range filters {
 		filterStage, err := BuildFilterStage(filter)
 		if err != nil {
 			return []bson.M{}, err
 		}
-		filterStages = append(filterStages, filterStage)
+		filterStages[i] = filterStage
 	}
 	return filterStages, nil
 }
