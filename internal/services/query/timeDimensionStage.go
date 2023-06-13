@@ -16,9 +16,9 @@ func BuildTimeDimension(timeDimension TimeDimension) (bson.M, error) {
 func BuildAllTimeDimensions(timeDimensions []TimeDimension) ([]bson.M, error) {
 	timeDimensionStages := make([]bson.M, len(timeDimensions))
 
-	for _, d := range timeDimensions {
+	for i, d := range timeDimensions {
 		stage, _ := BuildTimeDimension(d)
-		timeDimensionStages = append(timeDimensionStages, stage)
+		timeDimensionStages[i] = stage
 	}
 	return timeDimensionStages, nil
 }
