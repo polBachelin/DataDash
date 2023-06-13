@@ -160,20 +160,16 @@ func ParseQuery(query Query) (QueryResult, error) {
 		return QueryResult{}, err
 	}
 	stages = append(stages, groupStage)
-	if len(query.Filters) > 0 {
-		filterStages, err := BuildAllFilters(query.Filters)
-		if err != nil {
-			return QueryResult{}, err
-		}
-		stages = append(stages, filterStages...)
+	filterStages, err := BuildAStage[Filter](query.Filters, BuildAllFilters)
+	if err != nil {
+		return QueryResult{}, err
 	}
-	if len(query.TimeDimensions) > 0 {
-		timeDimensionStage, err := BuildAllTimeDimensions(query.TimeDimensions)
-		if err != nil {
-			return QueryResult{}, err
-		}
-		stages = append(stages, timeDimensionStage...)
+	timeDimensionStage, err := BuildAStage[TimeDimension](query.TimeDimensions, BuildAllTimeDimensions)
+	if err != nil {
+		return QueryResult{}, err
 	}
+	stages = append(stages, filterStages...)
+	stages = append(stages, timeDimensionStage...)
 	return res, nil
 }
 
