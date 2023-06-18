@@ -40,6 +40,10 @@ type Dimensions struct {
 	PrimaryKey bool   `yaml:"primary_key"`
 }
 
+func NewJoin() *Join {
+	return &Join{}
+}
+
 // TODO optimize this with HashSet
 func GetBlockFromName(name string) *BlockData {
 	blockInstance := GetInstance()

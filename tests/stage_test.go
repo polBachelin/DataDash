@@ -20,7 +20,7 @@ func TestBuildAFilter(t *testing.T) {
 		match := res[0]["$match"].(bson.M)
 
 		if match["isDraft"] != false {
-			t.Fatalf("Err -> \nWant %q\nGot %q", false, match["isDraft"])
+			t.Fatalf("Err -> \nWant %v\nGot %q", false, match["isDraft"])
 		}
 	})
 }

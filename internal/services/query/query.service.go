@@ -118,7 +118,7 @@ func findJoinParent(blockQueries []BlockQuery) (int, int, error) {
 	return -1, -1, errors.New("no join parent found in block queries")
 }
 
-func BuildGroupStageFromDimensions(dimensions []string) (bson.M, error) {
+func BuildGroupStageFromDimensions(dimensions []string, join *blockService.Join) (bson.M, error) {
 	ids := make(bson.M)
 	lastName := dimensions[0]
 
@@ -135,27 +135,41 @@ func BuildGroupStageFromDimensions(dimensions []string) (bson.M, error) {
 		} else {
 			//if it was not found in dimensions check joins
 			lastBlock := blockService.GetBlockFromName(lastName)
-			join, err := blockService.GetBlockJoinFromName(n[0], *lastBlock)
+			j, err := blockService.GetBlockJoinFromName(n[0], *lastBlock)
 			if err != nil {
 				return bson.M{}, errors.New("could not find dimension and join from block :" + block.Name)
 			}
-			ids[join.Name] = "$" + join.LocalField
+			*join = j
+			ids[j.Name] = "$" + j.LocalField
 		}
 		lastName = n[0]
 	}
-	return bson.M{"$group": ids}, nil
+	return bson.M{"$group": bson.M{"_id": ids}}, nil
+}
+
+func BuildLookupStage(join blockService.Join) bson.M {
+	return bson.M{"$lookup": bson.M{"from": join.Name, "localField": "_id." + join.Name, "foreignField": join.ForeignField, "as": join.Name}}
+}
+
+//TODO need to know if dimension is a join or not
+//need to split the measures & dimensions at the beggining 
+func BuildGroupStageFromMeasures(measures string, dimensions []string, *join blockService.Join) bson.M {
+	//stage := bson.M{"$group": bson.M{"_id": }}
+	d := bson.M{}
+	for _, dimension := range dimensions {
+		d[dimension] = "$_id." + dimension
+	}
+	
+	return bson.M{}
 }
 
 func ParseQuery(query Query) (QueryResult, error) {
 	var res QueryResult
 	var stages []bson.M
+	var join *blockService.Join = nil
 
-	blockQueries := GetBlockQueriesFromQuery(query)
-	err := checkJoinFromQueries(blockQueries)
-	if err != nil {
-		return QueryResult{}, err
-	}
-	groupStage, err := BuildGroupStageFromDimensions(query.Dimensions)
+	//blockQueries := GetBlockQueriesFromQuery(query)
+	groupStage, err := BuildGroupStageFromDimensions(query.Dimensions, join)
 	if err != nil {
 		return QueryResult{}, err
 	}
@@ -170,6 +184,12 @@ func ParseQuery(query Query) (QueryResult, error) {
 	}
 	stages = append(stages, filterStages...)
 	stages = append(stages, timeDimensionStage...)
+	if join != nil {
+		lookupStage := BuildLookupStage(*join)
+		stages = append(stages, lookupStage)
+	}
+	//TODO for each measure there should be one group stage ?
+	BuildGroupStageFromMeasures(query.Measures[0], query.Dimensions, join)
 	return res, nil
 }
 

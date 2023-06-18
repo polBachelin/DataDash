@@ -106,9 +106,10 @@ func TestBlockQuery(t *testing.T) {
 
 func TestBuildGroupStage(t *testing.T) {
 	q := getQueryObject()
+	var join *blockService.Join = nil
 
 	t.Run("Correct build stage", func(t *testing.T) {
-		res, err := query.BuildGroupStageFromDimensions(q.Dimensions)
+		res, err := query.BuildGroupStageFromDimensions(q.Dimensions, join)
 		log.Println(res)
 		if err != nil {
 			t.Fatalf("Err -> \nReturned error: %v", err)
