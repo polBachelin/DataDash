@@ -151,15 +151,15 @@ func BuildLookupStage(join blockService.Join) bson.M {
 	return bson.M{"$lookup": bson.M{"from": join.Name, "localField": "_id." + join.Name, "foreignField": join.ForeignField, "as": join.Name}}
 }
 
-//TODO need to know if dimension is a join or not
-//need to split the measures & dimensions at the beggining 
-func BuildGroupStageFromMeasures(measures string, dimensions []string, *join blockService.Join) bson.M {
+// TODO need to know if dimension is a join or not
+// need to split the measures & dimensions at the beggining
+func BuildGroupStageFromMeasures(measures string, dimensions []string, join *blockService.Join) bson.M {
 	//stage := bson.M{"$group": bson.M{"_id": }}
 	d := bson.M{}
 	for _, dimension := range dimensions {
 		d[dimension] = "$_id." + dimension
 	}
-	
+
 	return bson.M{}
 }
 
