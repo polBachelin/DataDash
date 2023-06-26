@@ -21,5 +21,9 @@ func PostQuery(c *gin.Context) {
 		c.JSON(400, "Error in body request")
 		return
 	}
-	queryService.ParseQuery(query)
+	res, err := queryService.ParseQuery(query)
+	if err != nil {
+		c.JSON(500, "Internal error")
+	}
+	c.JSON(200, res)
 }

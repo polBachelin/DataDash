@@ -8,9 +8,9 @@ import (
 	"go.mongodb.org/mongo-driver/bson"
 )
 
-func executeStage(stage bson.M, collectionName string) []bson.M {
+func executeStages(stages []bson.M, collectionName string) []bson.M {
 	collection := database.GetCollection(collectionName)
-	res, err := collection.Aggregate(context.TODO(), []bson.M{stage})
+	res, err := collection.Aggregate(context.TODO(), stages)
 	if err != nil {
 		log.Fatal(err)
 		return nil

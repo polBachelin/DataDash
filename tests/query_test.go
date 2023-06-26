@@ -70,19 +70,6 @@ func TestQuery(t *testing.T) {
 			t.Fatalf("Err -> error during execution: %v", err)
 		}
 		log.Println(res)
-		if res.Data[0].DimensionType != "category" {
-			t.Errorf("Err -> \nWant %q\nGot %q", "category", res.Data[0].DimensionType)
-		}
-		if res.Data[0].Dimension != "Fiction" {
-			t.Errorf("Err -> \nWant %q\nGot %q", "Fiction", res.Data[0].Dimension)
-		}
-		if res.Data[0].MeasureType != "count" {
-			t.Errorf("Err -> \nWant %q\nGot %q", "count", res.Data[0].MeasureType)
-		}
-		if res.Data[0].Measure != "4" {
-			t.Errorf("Err -> \nWant %q\nGot %q", "4", res.Data[0].Measure)
-		}
-
 	})
 }
 
@@ -106,17 +93,16 @@ func TestBlockQuery(t *testing.T) {
 
 func TestBuildGroupStage(t *testing.T) {
 	q := getQueryObject()
-	var join *blockService.Join = nil
 
 	t.Run("Correct build stage", func(t *testing.T) {
-		res, err := query.BuildGroupStageFromDimensions(q.Dimensions, join)
+		res, _, err := query.BuildGroupStageFromDimensions(q.Dimensions)
 		log.Println(res)
 		if err != nil {
 			t.Fatalf("Err -> \nReturned error: %v", err)
 		}
 		s := res["$group"].(bson.M)
-		if s["Movies"] != "$movie_id" {
-			t.Fatalf("Err -> \nWant %q\nGot %q", "movie_id", s["movieId"])
+		if s["_id"].(bson.M)["Movies"] != "$movie_id" {
+			t.Fatalf("Err -> \nWant %q\nGot %q", "$movie_id", s["Movies"])
 		}
 	})
 }

@@ -118,16 +118,18 @@ func findJoinParent(blockQueries []BlockQuery) (int, int, error) {
 	return -1, -1, errors.New("no join parent found in block queries")
 }
 
-func BuildGroupStageFromDimensions(dimensions []string, join *blockService.Join) (bson.M, error) {
+// TODO: segfault when dimension does not exist in block
+func BuildGroupStageFromDimensions(dimensions []string) (bson.M, *blockService.Join, error) {
 	ids := make(bson.M)
 	lastName := dimensions[0]
+	var join *blockService.Join = nil
 
 	for _, dimension := range dimensions {
 		n := strings.Split(dimension, ".")
 		lastName = strings.Split(lastName, ".")[0]
 		block := blockService.GetBlockFromName(n[0])
 		if block == nil {
-			return bson.M{}, errors.New("no block found")
+			return bson.M{}, nil, errors.New("no block found")
 		}
 		if lastName == n[0] {
 			dimIndex := slices.IndexFunc(block.Dimensions, func(data blockService.Dimensions) bool { return data.Name == n[1] })
@@ -137,60 +139,66 @@ func BuildGroupStageFromDimensions(dimensions []string, join *blockService.Join)
 			lastBlock := blockService.GetBlockFromName(lastName)
 			j, err := blockService.GetBlockJoinFromName(n[0], *lastBlock)
 			if err != nil {
-				return bson.M{}, errors.New("could not find dimension and join from block :" + block.Name)
+				return bson.M{}, nil, errors.New("could not find dimension and join from block :" + block.Name)
 			}
-			*join = j
+			join = &j
 			ids[j.Name] = "$" + j.LocalField
 		}
 		lastName = n[0]
 	}
-	return bson.M{"$group": bson.M{"_id": ids}}, nil
+	return bson.M{"$group": bson.M{"_id": ids}}, join, nil
 }
 
 func BuildLookupStage(join blockService.Join) bson.M {
 	return bson.M{"$lookup": bson.M{"from": join.Name, "localField": "_id." + join.Name, "foreignField": join.ForeignField, "as": join.Name}}
 }
 
-// TODO need to know if dimension is a join or not
-// need to split the measures & dimensions at the beggining
-func BuildGroupStageFromMeasures(measures string, dimensions []string, join *blockService.Join) bson.M {
-	//stage := bson.M{"$group": bson.M{"_id": }}
+func BuildGroupStageForMeasures(query Query, join *blockService.Join) bson.M {
+	blockQueries := GetBlockQueriesFromQuery(query)
 	d := bson.M{}
-	for _, dimension := range dimensions {
-		d[dimension] = "$_id." + dimension
+	for _, blockQuery := range blockQueries {
+		for _, dimension := range blockQuery.Dimensions {
+			if blockQuery.Name != join.Name {
+				d[dimension] = "$_id." + dimension
+			} else {
+				d[dimension] = "$" + join.Name + "." + dimension
+			}
+		}
 	}
-
-	return bson.M{}
+	//TODO: only handling count measure for now, need to find out how to add multiple measures to the group stage in mongoDB
+	return bson.M{"$group": bson.M{"_id": d, "count": bson.M{"$sum": 1}}}
 }
 
-func ParseQuery(query Query) (QueryResult, error) {
-	var res QueryResult
+func ParseQuery(query Query) ([]bson.M, error) {
 	var stages []bson.M
-	var join *blockService.Join = nil
 
 	//blockQueries := GetBlockQueriesFromQuery(query)
-	groupStage, err := BuildGroupStageFromDimensions(query.Dimensions, join)
+	groupStage, join, err := BuildGroupStageFromDimensions(query.Dimensions)
 	if err != nil {
-		return QueryResult{}, err
+		return []bson.M{}, err
 	}
-	stages = append(stages, groupStage)
 	filterStages, err := BuildAStage[Filter](query.Filters, BuildAllFilters)
 	if err != nil {
-		return QueryResult{}, err
+		return []bson.M{}, err
 	}
 	timeDimensionStage, err := BuildAStage[TimeDimension](query.TimeDimensions, BuildAllTimeDimensions)
 	if err != nil {
-		return QueryResult{}, err
+		return []bson.M{}, err
 	}
 	stages = append(stages, filterStages...)
 	stages = append(stages, timeDimensionStage...)
+	stages = append(stages, groupStage)
 	if join != nil {
 		lookupStage := BuildLookupStage(*join)
 		stages = append(stages, lookupStage)
 	}
 	//TODO for each measure there should be one group stage ?
-	BuildGroupStageFromMeasures(query.Measures[0], query.Dimensions, join)
-	return res, nil
+	measureStage := BuildGroupStageForMeasures(query, join)
+	stages = append(stages, measureStage)
+	log.Println(stages)
+	documents := executeStages(stages, "Stories")
+	log.Println(documents)
+	return documents, nil
 }
 
 // Name needs to contain [CUBE_NAME, MEASURE_NAME]

@@ -4,7 +4,7 @@ blocks:
     joins:
       - name: Movies
         local_field: movie_id
-        foreign_field: id
+        foreign_field: _id
         relationship: one_to_one
     measures:
       - name: count
