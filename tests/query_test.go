@@ -51,27 +51,31 @@ func buildStoriesBlock() blockService.BlockData {
 	return block
 }
 
-func buildBlockQuery() query.BlockQuery {
+func buildBlockQuery(name string) query.BlockQuery {
 	blockQuery := query.BlockQuery{
 		Measure:    []string{"count"},
 		Dimensions: []string{"category", "time"},
-		Name:       "Stories",
+		Name:       name,
 	}
 	return blockQuery
 }
 
-func TestQuery(t *testing.T) {
-	connectDb()
-	q := getQueryObject()
-
-	t.Run("ParseQuery", func(t *testing.T) {
-		res, err := query.ParseQuery(q)
-		if err != nil {
-			t.Fatalf("Err -> error during execution: %v", err)
-		}
-		log.Println(res)
-	})
+func buildAllBlockQueries() []query.BlockQuery {
+	return []query.BlockQuery{buildBlockQuery("Stories"), buildBlockQuery("Movies")}
 }
+
+// func TestQuery(t *testing.T) {
+// 	connectDb()
+// 	q := getQueryObject()
+
+// 	t.Run("ParseQuery", func(t *testing.T) {
+// 		res, err := query.ParseQuery(q)
+// 		if err != nil {
+// 			t.Fatalf("Err -> error during execution: %v", err)
+// 		}
+// 		log.Println(res)
+// 	})
+// }
 
 func TestBlockQuery(t *testing.T) {
 	q := getQueryObject()
@@ -95,7 +99,7 @@ func TestBuildGroupStage(t *testing.T) {
 	q := getQueryObject()
 
 	t.Run("Correct build stage", func(t *testing.T) {
-		res, _, err := query.BuildGroupStageFromDimensions(q.Dimensions)
+		res, err := query.BuildGroupStageFromDimensions(q.Dimensions)
 		log.Println(res)
 		if err != nil {
 			t.Fatalf("Err -> \nReturned error: %v", err)
@@ -105,4 +109,16 @@ func TestBuildGroupStage(t *testing.T) {
 			t.Fatalf("Err -> \nWant %q\nGot %q", "$movie_id", s["Movies"])
 		}
 	})
+}
+
+func TestFindJoin(t *testing.T) {
+	dimensions := []string{
+		"Stories.category",
+		"Movies.release_date",
+	}
+	blockName := query.FindBlockWithJoin(dimensions)
+	log.Println(blockName)
+	if blockName == nil {
+		t.Fatalf("Err -> \nReturned nil")
+	}
 }

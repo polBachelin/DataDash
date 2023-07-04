@@ -119,17 +119,16 @@ func findJoinParent(blockQueries []BlockQuery) (int, int, error) {
 }
 
 // TODO: segfault when dimension does not exist in block
-func BuildGroupStageFromDimensions(dimensions []string) (bson.M, *blockService.Join, error) {
+func BuildGroupStageFromDimensions(dimensions []string) (bson.M, error) {
 	ids := make(bson.M)
 	lastName := dimensions[0]
-	var join *blockService.Join = nil
 
 	for _, dimension := range dimensions {
 		n := strings.Split(dimension, ".")
 		lastName = strings.Split(lastName, ".")[0]
 		block := blockService.GetBlockFromName(n[0])
 		if block == nil {
-			return bson.M{}, nil, errors.New("no block found")
+			return bson.M{}, errors.New("no block found")
 		}
 		if lastName == n[0] {
 			dimIndex := slices.IndexFunc(block.Dimensions, func(data blockService.Dimensions) bool { return data.Name == n[1] })
@@ -139,18 +138,23 @@ func BuildGroupStageFromDimensions(dimensions []string) (bson.M, *blockService.J
 			lastBlock := blockService.GetBlockFromName(lastName)
 			j, err := blockService.GetBlockJoinFromName(n[0], *lastBlock)
 			if err != nil {
-				return bson.M{}, nil, errors.New("could not find dimension and join from block :" + block.Name)
+				return bson.M{}, errors.New("could not find dimension and join from block :" + block.Name)
 			}
-			join = &j
 			ids[j.Name] = "$" + j.LocalField
 		}
 		lastName = n[0]
 	}
-	return bson.M{"$group": bson.M{"_id": ids}}, join, nil
+	return bson.M{"$group": bson.M{"_id": ids}}, nil
 }
 
 func BuildLookupStage(join blockService.Join) bson.M {
-	return bson.M{"$lookup": bson.M{"from": join.Name, "localField": "_id." + join.Name, "foreignField": join.ForeignField, "as": join.Name}}
+	return bson.M{
+		"$lookup": bson.M{
+			"from":         join.Name,
+			"localField":   "_id." + join.Name,
+			"foreignField": join.ForeignField,
+			"as":           join.Name,
+		}}
 }
 
 func BuildGroupStageForMeasures(query Query, join *blockService.Join) bson.M {
@@ -169,11 +173,30 @@ func BuildGroupStageForMeasures(query Query, join *blockService.Join) bson.M {
 	return bson.M{"$group": bson.M{"_id": d, "count": bson.M{"$sum": 1}}}
 }
 
+func FindBlockWithJoin(dimensions []string) *blockService.Join {
+	for i, dimension := range dimensions {
+		block := blockService.GetBlockFromName(getBlockName(dimension))
+		for _, join := range block.Joins {
+			if hasBlockName(dimensions[i+1:], join.Name) {
+				return &join
+			}
+		}
+	}
+	return nil
+}
+
+// TODO: currently only works if there is a join in the request, need to fix that
 func ParseQuery(query Query) ([]bson.M, error) {
 	var stages []bson.M
 
-	//blockQueries := GetBlockQueriesFromQuery(query)
-	groupStage, join, err := BuildGroupStageFromDimensions(query.Dimensions)
+	// blockQueries := GetBlockQueriesFromQuery(query)
+	join := FindBlockWithJoin(query.Dimensions)
+	if join != nil {
+		lookupStage := BuildLookupStage(*join)
+		stages = append(stages, lookupStage)
+	}
+
+	groupStage, err := BuildGroupStageFromDimensions(query.Dimensions)
 	if err != nil {
 		return []bson.M{}, err
 	}
@@ -188,10 +211,6 @@ func ParseQuery(query Query) ([]bson.M, error) {
 	stages = append(stages, filterStages...)
 	stages = append(stages, timeDimensionStage...)
 	stages = append(stages, groupStage)
-	if join != nil {
-		lookupStage := BuildLookupStage(*join)
-		stages = append(stages, lookupStage)
-	}
 	//TODO for each measure there should be one group stage ?
 	measureStage := BuildGroupStageForMeasures(query, join)
 	stages = append(stages, measureStage)

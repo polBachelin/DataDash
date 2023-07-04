@@ -17,8 +17,44 @@ func BuildAllTimeDimensions(timeDimensions []TimeDimension) ([]bson.M, error) {
 	timeDimensionStages := make([]bson.M, len(timeDimensions))
 
 	for i, d := range timeDimensions {
-		stage, _ := BuildTimeDimension(d)
+		stage := generateTimeStage(d)
 		timeDimensionStages[i] = stage
 	}
 	return timeDimensionStages, nil
+}
+
+func generateTimeStage(timeDimension TimeDimension) bson.M {
+	dateFormat := getDateFormat(timeDimension.Granularity)
+	timeStage := bson.M{
+		"$addFields": bson.M{
+			"time": bson.M{
+				"$dateToString": bson.M{
+					"date":   "$" + getDimensionName(timeDimension.Dimension),
+					"format": dateFormat,
+				},
+			},
+		},
+	}
+	if len(timeDimension.DateRange) == 2 {
+		timeStage["$match"] = bson.M{
+			timeDimension.Dimension: bson.M{
+				"$gte": timeDimension.DateRange[0],
+				"$lte": timeDimension.DateRange[1],
+			},
+		}
+	}
+	return timeStage
+}
+
+func getDateFormat(granularity string) string {
+	switch granularity {
+	case "day":
+		return "%Y-%m-%d"
+	case "month":
+		return "%Y-%m"
+	case "year":
+		return "%Y"
+	default:
+		return "%Y-%m-%d"
+	}
 }

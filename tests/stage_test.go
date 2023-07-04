@@ -30,7 +30,6 @@ func TestTimeDimensions(t *testing.T) {
 
 	t.Run("correct time", func(t *testing.T) {
 		res, err := query.BuildAllTimeDimensions(q.TimeDimensions)
-		log.Println(res)
 		if err != nil {
 			t.Fatalf("Err -> \nReturned error: %v", err)
 		}
@@ -40,5 +39,4 @@ func TestTimeDimensions(t *testing.T) {
 		}
 
 	})
-
 }
