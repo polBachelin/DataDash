@@ -31,6 +31,15 @@ func getQueryObject() query.Query {
 	return q
 }
 
+func getJoinObject() blockService.Join {
+	join := blockService.Join{
+		Name:         "Movies",
+		LocalField:   "movie_id",
+		ForeignField: "_id",
+		Relationship: "one_to_one"}
+	return join
+}
+
 func buildStoriesBlock() blockService.BlockData {
 	block := blockService.BlockData{
 		Name: "Stories",
@@ -97,16 +106,13 @@ func TestBlockQuery(t *testing.T) {
 
 func TestBuildGroupStage(t *testing.T) {
 	q := getQueryObject()
-
+	j := getJoinObject()
 	t.Run("Correct build stage", func(t *testing.T) {
-		res, err := query.BuildGroupStageFromDimensions(q.Dimensions)
+		res := query.GenerateGroupStage(q.Dimensions, &j)
 		log.Println(res)
-		if err != nil {
-			t.Fatalf("Err -> \nReturned error: %v", err)
-		}
 		s := res["$group"].(bson.M)
-		if s["_id"].(bson.M)["Movies"] != "$movie_id" {
-			t.Fatalf("Err -> \nWant %q\nGot %q", "$movie_id", s["Movies"])
+		if s["_id"].(bson.M)["release_date"] != "$Movies.release_date" {
+			t.Fatalf("Err -> \nWant %q\nGot %q", "$Movies.release_date", s["_id"].(bson.M)["release_date"])
 		}
 	})
 }

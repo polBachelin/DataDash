@@ -102,7 +102,7 @@ func FindBlockWithJoin(dimensions []string) *blockService.Join {
 	return nil
 }
 
-func generateGroupStage(dimensions []string, join *blockService.Join) bson.M {
+func GenerateGroupStage(dimensions []string, join *blockService.Join) bson.M {
 	groupStage := bson.M{}
 	for _, dimension := range dimensions {
 		memberName := getMemberName(dimension)
@@ -142,7 +142,7 @@ func ParseQuery(query Query) ([]bson.M, error) {
 		stages = append(stages, bson.M{"$unwind": "$" + join.Name})
 	}
 
-	groupStage := generateGroupStage(query.Dimensions, join)
+	groupStage := GenerateGroupStage(query.Dimensions, join)
 	stages = append(stages, groupStage)
 	stages = append(stages, generateProjectStage(query.Dimensions, query.Measures))
 	stages = append(stages, generateOffsetStage(query.Offset))
