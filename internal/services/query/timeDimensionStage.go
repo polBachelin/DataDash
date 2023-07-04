@@ -37,7 +37,7 @@ func generateTimeStage(timeDimension TimeDimension) bson.M {
 	}
 	if len(timeDimension.DateRange) == 2 {
 		timeStage["$match"] = bson.M{
-			timeDimension.Dimension: bson.M{
+			getDimensionName(timeDimension.Dimension): bson.M{
 				"$gte": timeDimension.DateRange[0],
 				"$lte": timeDimension.DateRange[1],
 			},

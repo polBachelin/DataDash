@@ -34,6 +34,7 @@ func TestTimeDimensions(t *testing.T) {
 			t.Fatalf("Err -> \nReturned error: %v", err)
 		}
 		match := res[0]["$match"].(bson.M)
+		log.Println(match)
 		if match["time"].(bson.M)["$gte"] != "2015-01-01" {
 			t.Fatalf("Err -> \nWant %q\nGot %q", "2015-01-01", match["$isDraft"])
 		}
