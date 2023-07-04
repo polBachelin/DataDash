@@ -8,7 +8,8 @@ func generateProjectStage(dimensions, measures []string) bson.M {
 	}
 
 	for _, dimension := range dimensions {
-		projectStage["$project"].(bson.M)[getMemberName(dimension)] = "$_id." + getMemberName(dimension)
+		memberName := getMemberName(dimension)
+		projectStage["$project"].(bson.M)[memberName] = "$_id." + memberName
 	}
 
 	for _, measure := range measures {

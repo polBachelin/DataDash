@@ -3,13 +3,11 @@ package query
 import (
 	blockService "dashboard/internal/services/block"
 	"dashboard/pkg/utils"
-	"errors"
 	"fmt"
 	"log"
 	"strings"
 
 	"go.mongodb.org/mongo-driver/bson"
-	"golang.org/x/exp/slices"
 )
 
 type Query struct {
@@ -53,20 +51,6 @@ type ResultData struct {
 	DimensionType string `json:"dimension_type"`
 }
 
-// Name is always under the format CUBE_NAME.MEMBER_NAME
-func checkName(name string) bool {
-	s := strings.Split(name, ".")
-	blockInstance := blockService.GetInstance()
-	for _, fd := range blockInstance.Blocks {
-		for _, block := range fd.Blocks {
-			if block.Name == s[0] {
-				return true
-			}
-		}
-	}
-	return false
-}
-
 func getStringsWithBlockName(blockName string, arr *[]string) []string {
 	res := make([]string, 0)
 	for i, v := range *arr {
@@ -88,63 +72,6 @@ func GetBlockQueriesFromQuery(query Query) []BlockQuery {
 		blockQueries = append(blockQueries, buildBlockQuery(dimensionInQuery, measuresInQuery, blockName))
 	}
 	return blockQueries
-}
-
-func checkJoinFromQueries(blockQueries []BlockQuery) error {
-	for i, blockQuery := range blockQueries {
-		block := blockService.GetBlockFromName(blockQuery.Name)
-		for _, nextBlockQuery := range blockQueries[i+1:] {
-			check := slices.IndexFunc(block.Joins, func(join blockService.Join) bool { return join.Name == nextBlockQuery.Name })
-			if check == -1 {
-				return errors.New("No join between " + block.Name + " and " + nextBlockQuery.Name)
-			}
-		}
-	}
-	return nil
-}
-
-// This function return : joinParent, joinChild, error
-func findJoinParent(blockQueries []BlockQuery) (int, int, error) {
-	for i, blockQuery := range blockQueries {
-		block := blockService.GetBlockFromName(blockQuery.Name)
-		if block == nil {
-			return -1, -1, errors.New("no block file found for name " + blockQuery.Name)
-		}
-		joinFound := slices.IndexFunc(block.Joins, func(data blockService.Join) bool { return data.Name == blockQuery.Name })
-		if joinFound != -1 {
-			return i, joinFound, nil
-		}
-	}
-	return -1, -1, errors.New("no join parent found in block queries")
-}
-
-// TODO: segfault when dimension does not exist in block
-func BuildGroupStageFromDimensions(dimensions []string) (bson.M, error) {
-	ids := make(bson.M)
-	lastName := dimensions[0]
-
-	for _, dimension := range dimensions {
-		n := strings.Split(dimension, ".")
-		lastName = strings.Split(lastName, ".")[0]
-		block := blockService.GetBlockFromName(n[0])
-		if block == nil {
-			return bson.M{}, errors.New("no block found")
-		}
-		if lastName == n[0] {
-			dimIndex := slices.IndexFunc(block.Dimensions, func(data blockService.Dimensions) bool { return data.Name == n[1] })
-			ids[n[1]] = "$" + block.Dimensions[dimIndex].Sql
-		} else {
-			//if it was not found in dimensions check joins
-			lastBlock := blockService.GetBlockFromName(lastName)
-			j, err := blockService.GetBlockJoinFromName(n[0], *lastBlock)
-			if err != nil {
-				return bson.M{}, errors.New("could not find dimension and join from block :" + block.Name)
-			}
-			ids[j.Name] = "$" + j.LocalField
-		}
-		lastName = n[0]
-	}
-	return bson.M{"$group": bson.M{"_id": ids}}, nil
 }
 
 func BuildGroupStageForMeasures(query Query, join *blockService.Join) bson.M {
@@ -225,7 +152,6 @@ func ParseQuery(query Query) ([]bson.M, error) {
 	}
 	log.Println(stages)
 	documents := executeStages(stages, "Stories")
-	log.Println(documents)
 	return documents, nil
 }
 

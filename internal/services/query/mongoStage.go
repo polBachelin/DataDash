@@ -23,16 +23,11 @@ func executeStages(stages []bson.M, collectionName string) []bson.M {
 	return document
 }
 
-// Checks if stage needs to be built
 // calls the given function with the array of measurements to return the MongoDB pipeline
 func BuildAStage[E any](s []E, f func([]E) ([]bson.M, error)) ([]bson.M, error) {
-
-	if len(s) > 0 {
-		stage, err := f(s)
-		if err != nil {
-			return []bson.M{}, err
-		}
-		return stage, nil
+	stage, err := f(s)
+	if err != nil {
+		return []bson.M{}, err
 	}
-	return []bson.M{}, nil
+	return stage, nil
 }
