@@ -18,7 +18,7 @@ func hasBlockName(dimensions []string, targetDimension string) bool {
 	return false
 }
 
-func getDimensionName(dimension string) string {
+func getMemberName(dimension string) string {
 	parts := strings.Split(dimension, ".")
 	return parts[1]
 }

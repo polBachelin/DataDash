@@ -64,18 +64,18 @@ func buildAllBlockQueries() []query.BlockQuery {
 	return []query.BlockQuery{buildBlockQuery("Stories"), buildBlockQuery("Movies")}
 }
 
-// func TestQuery(t *testing.T) {
-// 	connectDb()
-// 	q := getQueryObject()
+func TestQuery(t *testing.T) {
+	connectDb()
+	q := getQueryObject()
 
-// 	t.Run("ParseQuery", func(t *testing.T) {
-// 		res, err := query.ParseQuery(q)
-// 		if err != nil {
-// 			t.Fatalf("Err -> error during execution: %v", err)
-// 		}
-// 		log.Println(res)
-// 	})
-// }
+	t.Run("ParseQuery", func(t *testing.T) {
+		res, err := query.ParseQuery(q)
+		if err != nil {
+			t.Fatalf("Err -> error during execution: %v", err)
+		}
+		log.Println(res)
+	})
+}
 
 func TestBlockQuery(t *testing.T) {
 	q := getQueryObject()

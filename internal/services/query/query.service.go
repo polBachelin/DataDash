@@ -147,16 +147,6 @@ func BuildGroupStageFromDimensions(dimensions []string) (bson.M, error) {
 	return bson.M{"$group": bson.M{"_id": ids}}, nil
 }
 
-func BuildLookupStage(join blockService.Join) bson.M {
-	return bson.M{
-		"$lookup": bson.M{
-			"from":         join.Name,
-			"localField":   "_id." + join.Name,
-			"foreignField": join.ForeignField,
-			"as":           join.Name,
-		}}
-}
-
 func BuildGroupStageForMeasures(query Query, join *blockService.Join) bson.M {
 	blockQueries := GetBlockQueriesFromQuery(query)
 	d := bson.M{}
@@ -185,35 +175,54 @@ func FindBlockWithJoin(dimensions []string) *blockService.Join {
 	return nil
 }
 
-// TODO: currently only works if there is a join in the request, need to fix that
+func generateGroupStage(dimensions []string, join *blockService.Join) bson.M {
+	groupStage := bson.M{}
+	for _, dimension := range dimensions {
+		memberName := getMemberName(dimension)
+		blockName := getBlockName(dimension)
+		if join != nil && blockName == join.Name {
+			groupStage[memberName] = "$" + join.Name + "." + memberName
+		} else {
+			groupStage[memberName] = "$" + memberName
+		}
+	}
+	return bson.M{"$group": bson.M{"_id": groupStage}}
+}
+
 func ParseQuery(query Query) ([]bson.M, error) {
 	var stages []bson.M
 
-	// blockQueries := GetBlockQueriesFromQuery(query)
+	if len(query.Filters) > 0 {
+		filterStages, err := BuildAStage[Filter](query.Filters, BuildAllFilters)
+		if err != nil {
+			return []bson.M{}, err
+		}
+		stages = append(stages, filterStages...)
+	}
+
+	if len(query.TimeDimensions) > 0 {
+		timeDimensionStage, err := BuildAStage[TimeDimension](query.TimeDimensions, BuildAllTimeDimensions)
+		if err != nil {
+			return []bson.M{}, err
+		}
+		stages = append(stages, timeDimensionStage...)
+	}
+
 	join := FindBlockWithJoin(query.Dimensions)
 	if join != nil {
 		lookupStage := BuildLookupStage(*join)
 		stages = append(stages, lookupStage)
+		stages = append(stages, bson.M{"$unwind": "$" + join.Name})
 	}
 
-	groupStage, err := BuildGroupStageFromDimensions(query.Dimensions)
-	if err != nil {
-		return []bson.M{}, err
-	}
-	filterStages, err := BuildAStage[Filter](query.Filters, BuildAllFilters)
-	if err != nil {
-		return []bson.M{}, err
-	}
-	timeDimensionStage, err := BuildAStage[TimeDimension](query.TimeDimensions, BuildAllTimeDimensions)
-	if err != nil {
-		return []bson.M{}, err
-	}
-	stages = append(stages, filterStages...)
-	stages = append(stages, timeDimensionStage...)
+	groupStage := generateGroupStage(query.Dimensions, join)
 	stages = append(stages, groupStage)
-	//TODO for each measure there should be one group stage ?
-	measureStage := BuildGroupStageForMeasures(query, join)
-	stages = append(stages, measureStage)
+	stages = append(stages, generateProjectStage(query.Dimensions, query.Measures))
+	stages = append(stages, generateOffsetStage(query.Offset))
+	stages = append(stages, generateLimitStage(query.Limit))
+	if len(query.Order.DimensionName) > 0 {
+		stages = append(stages, generateOrderStage(query.Order))
+	}
 	log.Println(stages)
 	documents := executeStages(stages, "Stories")
 	log.Println(documents)
