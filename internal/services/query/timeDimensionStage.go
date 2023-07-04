@@ -6,9 +6,9 @@ import (
 	"go.mongodb.org/mongo-driver/bson"
 )
 
-func BuildTimeDimension(timeDimension TimeDimension) (bson.M, error) {
+func BuildTimeDimension(timeDimension TimeDimension) bson.M {
 	member := strings.Split(timeDimension.Dimension, ".")[1]
-	return bson.M{"$match": bson.M{member: bson.M{"$gte": timeDimension.DateRange[0], "$lte": timeDimension.DateRange[1]}}}, nil
+	return bson.M{"$match": bson.M{member: bson.M{"$gte": timeDimension.DateRange[0], "$lte": timeDimension.DateRange[1]}}}
 }
 
 // TODO check if I should enable the fact to add time dimensions for a join
@@ -17,33 +17,10 @@ func BuildAllTimeDimensions(timeDimensions []TimeDimension) ([]bson.M, error) {
 	timeDimensionStages := make([]bson.M, len(timeDimensions))
 
 	for i, d := range timeDimensions {
-		stage := generateTimeStage(d)
+		stage := BuildTimeDimension(d)
 		timeDimensionStages[i] = stage
 	}
 	return timeDimensionStages, nil
-}
-
-func generateTimeStage(timeDimension TimeDimension) bson.M {
-	dateFormat := getDateFormat(timeDimension.Granularity)
-	timeStage := bson.M{
-		"$addFields": bson.M{
-			"time": bson.M{
-				"$dateToString": bson.M{
-					"date":   "$" + getDimensionName(timeDimension.Dimension),
-					"format": dateFormat,
-				},
-			},
-		},
-	}
-	if len(timeDimension.DateRange) == 2 {
-		timeStage["$match"] = bson.M{
-			getDimensionName(timeDimension.Dimension): bson.M{
-				"$gte": timeDimension.DateRange[0],
-				"$lte": timeDimension.DateRange[1],
-			},
-		}
-	}
-	return timeStage
 }
 
 func getDateFormat(granularity string) string {
