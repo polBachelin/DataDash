@@ -116,6 +116,19 @@ func GenerateGroupStage(dimensions []string, join *blockService.Join) bson.M {
 	return bson.M{"$group": bson.M{"_id": groupStage}}
 }
 
+func FindCollectionName(dimensions []string, join *blockService.Join) string {
+
+	if join != nil {
+		for _, dimension := range dimensions {
+			collectionName := getBlockName(dimension)
+			if join.Name == collectionName {
+				return collectionName
+			}
+		}
+	}
+	return getBlockName(dimensions[0])
+}
+
 func ParseQuery(query Query) ([]bson.M, error) {
 	var stages []bson.M
 
@@ -151,7 +164,7 @@ func ParseQuery(query Query) ([]bson.M, error) {
 		stages = append(stages, generateOrderStage(query.Order))
 	}
 	log.Println(stages)
-	documents := executeStages(stages, "Stories")
+	documents := executeStages(stages, FindCollectionName(query.Dimensions, join))
 	return documents, nil
 }
 
