@@ -2,10 +2,8 @@ package query
 
 import (
 	blockService "dashboard/internal/services/block"
-	"dashboard/pkg/utils"
 	"fmt"
 	"log"
-	"strings"
 
 	"go.mongodb.org/mongo-driver/bson"
 )
@@ -51,45 +49,6 @@ type ResultData struct {
 	DimensionType string `json:"dimension_type"`
 }
 
-func getStringsWithBlockName(blockName string, arr *[]string) []string {
-	res := make([]string, 0)
-	for i, v := range *arr {
-		if strings.HasPrefix(v, blockName) {
-			res = append(res, v)
-			*arr = utils.Remove(*arr, i)
-		}
-	}
-	return res
-}
-
-func GetBlockQueriesFromQuery(query Query) []BlockQuery {
-	blockQueries := make([]BlockQuery, 0)
-
-	for len(query.Dimensions) > 0 {
-		blockName := strings.Split(query.Dimensions[0], ".")[0]
-		dimensionInQuery := getStringsWithBlockName(blockName, &query.Dimensions)
-		measuresInQuery := getStringsWithBlockName(blockName, &query.Measures)
-		blockQueries = append(blockQueries, buildBlockQuery(dimensionInQuery, measuresInQuery, blockName))
-	}
-	return blockQueries
-}
-
-func BuildGroupStageForMeasures(query Query, join *blockService.Join) bson.M {
-	blockQueries := GetBlockQueriesFromQuery(query)
-	d := bson.M{}
-	for _, blockQuery := range blockQueries {
-		for _, dimension := range blockQuery.Dimensions {
-			if blockQuery.Name != join.Name {
-				d[dimension] = "$_id." + dimension
-			} else {
-				d[dimension] = "$" + join.Name + "." + dimension
-			}
-		}
-	}
-	//TODO: only handling count measure for now, need to find out how to add multiple measures to the group stage in mongoDB
-	return bson.M{"$group": bson.M{"_id": d, "count": bson.M{"$sum": 1}}}
-}
-
 func FindBlockWithJoin(dimensions []string) *blockService.Join {
 	for i, dimension := range dimensions {
 		block := blockService.GetBlockFromName(getBlockName(dimension))
@@ -100,33 +59,6 @@ func FindBlockWithJoin(dimensions []string) *blockService.Join {
 		}
 	}
 	return nil
-}
-
-func GenerateGroupStage(dimensions []string, join *blockService.Join) bson.M {
-	groupStage := bson.M{}
-	for _, dimension := range dimensions {
-		memberName := getMemberName(dimension)
-		blockName := getBlockName(dimension)
-		if join != nil && blockName == join.Name {
-			groupStage[memberName] = "$" + join.Name + "." + memberName
-		} else {
-			groupStage[memberName] = "$" + memberName
-		}
-	}
-	return bson.M{"$group": bson.M{"_id": groupStage}}
-}
-
-func FindCollectionName(dimensions []string, join *blockService.Join) string {
-
-	if join != nil {
-		for _, dimension := range dimensions {
-			collectionName := getBlockName(dimension)
-			if join.Name == collectionName {
-				return collectionName
-			}
-		}
-	}
-	return getBlockName(dimensions[0])
 }
 
 func ParseQuery(query Query) ([]bson.M, error) {

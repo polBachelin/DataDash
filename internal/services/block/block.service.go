@@ -44,7 +44,6 @@ func NewJoin() *Join {
 	return &Join{}
 }
 
-// TODO optimize this with HashSet
 func GetBlockFromName(name string) *BlockData {
 	blockInstance := GetInstance()
 	for _, blockData := range blockInstance.Blocks {

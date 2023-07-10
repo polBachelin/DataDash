@@ -23,3 +23,17 @@ func BuildGroupStage(block blockService.BlockData, joinChildIndex int, blockQuer
 	}
 	return bson.M{"$group": ids}
 }
+
+func GenerateGroupStage(dimensions []string, join *blockService.Join) bson.M {
+	groupStage := bson.M{}
+	for _, dimension := range dimensions {
+		memberName := getMemberName(dimension)
+		blockName := getBlockName(dimension)
+		if join != nil && blockName == join.Name {
+			groupStage[memberName] = "$" + join.Name + "." + memberName
+		} else {
+			groupStage[memberName] = "$" + memberName
+		}
+	}
+	return bson.M{"$group": bson.M{"_id": groupStage}}
+}
