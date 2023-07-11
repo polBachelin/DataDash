@@ -20,7 +20,7 @@ func GetInstance() *single {
 		defer lock.Unlock()
 		if singleInstance == nil {
 			fmt.Println("Creating single instance now.")
-			data, err := block.ReadAllBlocks("./schema")
+			data, err := block.ReadAllBlocks("./example_schema")
 			if err != nil {
 				fmt.Println("Error trying to read all blocks: ", err)
 			} else {

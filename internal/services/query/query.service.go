@@ -2,7 +2,6 @@ package query
 
 import (
 	blockService "dashboard/internal/services/block"
-	"fmt"
 	"log"
 
 	"go.mongodb.org/mongo-driver/bson"
@@ -87,7 +86,7 @@ func ParseQuery(query Query) ([]bson.M, error) {
 		stages = append(stages, bson.M{"$unwind": "$" + join.Name})
 	}
 
-	groupStage := GenerateGroupStage(query.Dimensions, join)
+	groupStage := GenerateGroupStage(query.Dimensions, query.Measures, join)
 	stages = append(stages, groupStage)
 	stages = append(stages, generateProjectStage(query.Dimensions, query.Measures))
 	stages = append(stages, generateOffsetStage(query.Offset))
@@ -98,20 +97,4 @@ func ParseQuery(query Query) ([]bson.M, error) {
 	log.Println(stages)
 	documents := executeStages(stages, FindCollectionName(query.Dimensions, join))
 	return documents, nil
-}
-
-// Name needs to contain [CUBE_NAME, MEASURE_NAME]
-func buildResData(documents []bson.M, blockName string, measureName string) []ResultData {
-	resData := make([]ResultData, 0)
-	var data ResultData
-
-	for _, doc := range documents {
-		data.Name = blockName
-		data.Dimension = fmt.Sprintf("%v", doc["_id"])
-		data.Measure = fmt.Sprintf("%v", doc[measureName])
-		resData = append(resData, data)
-		log.Println(doc)
-		log.Println(doc["count"])
-	}
-	return resData
 }

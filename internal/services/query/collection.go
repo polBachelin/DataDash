@@ -1,6 +1,11 @@
 package query
 
-import blockService "dashboard/internal/services/block"
+import (
+	blockService "dashboard/internal/services/block"
+	"log"
+
+	"golang.org/x/exp/slices"
+)
 
 func FindCollectionName(dimensions []string, join *blockService.Join) string {
 
@@ -8,9 +13,14 @@ func FindCollectionName(dimensions []string, join *blockService.Join) string {
 		for _, dimension := range dimensions {
 			collectionName := getBlockName(dimension)
 			if join.Name == collectionName {
-				return collectionName
+				log.Println("Collection name: ", collectionName)
+				index := slices.IndexFunc(dimensions, func(data string) bool {
+					return data != dimension
+				})
+				return getBlockName(dimensions[index])
 			}
 		}
 	}
+	log.Println("Collection name: ", getBlockName(dimensions[0]))
 	return getBlockName(dimensions[0])
 }

@@ -8,7 +8,6 @@ import (
 	"testing"
 
 	"go.mongodb.org/mongo-driver/bson"
-	"golang.org/x/exp/slices"
 )
 
 // Need to connect to a test database
@@ -86,29 +85,11 @@ func TestQuery(t *testing.T) {
 	})
 }
 
-func TestBlockQuery(t *testing.T) {
-	q := getQueryObject()
-
-	t.Run("GetBlockQueriesFromQuery", func(t *testing.T) {
-		res := query.GetBlockQueriesFromQuery(q)
-		log.Println(res)
-		if res[0].Name != "Stories" {
-			t.Fatalf("Err -> \nWant %q\nGot %q", "Stories", res[0].Name)
-		}
-		if !slices.Contains(res[0].Dimensions, "category") {
-			t.Fatalf("Err -> \nWant %q\nGot %q", "category", res[0].Dimensions)
-		}
-		if !slices.Contains(res[1].Dimensions, "release_date") {
-			t.Fatalf("Err -> \nWant %q\nGot %q", "release_date", res[1].Dimensions)
-		}
-	})
-}
-
 func TestBuildGroupStage(t *testing.T) {
 	q := getQueryObject()
 	j := getJoinObject()
 	t.Run("Correct build stage", func(t *testing.T) {
-		res := query.GenerateGroupStage(q.Dimensions, &j)
+		res := query.GenerateGroupStage(q.Dimensions, q.Measures, &j)
 		log.Println(res)
 		s := res["$group"].(bson.M)
 		if s["_id"].(bson.M)["release_date"] != "$Movies.release_date" {

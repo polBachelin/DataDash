@@ -8,6 +8,16 @@ import (
 	"golang.org/x/exp/slices"
 )
 
+type MeasureTypeFunc func() bson.M
+
+var MeasureTypes = map[string]MeasureTypeFunc{
+	"count": MeasureCount,
+}
+
+func MeasureCount() bson.M {
+	return bson.M{"$sum": 1}
+}
+
 func BuildGroupStage(block blockService.BlockData, joinChildIndex int, blockQuery BlockQuery) bson.M {
 	ids := make(bson.M)
 
@@ -24,7 +34,13 @@ func BuildGroupStage(block blockService.BlockData, joinChildIndex int, blockQuer
 	return bson.M{"$group": ids}
 }
 
-func GenerateGroupStage(dimensions []string, join *blockService.Join) bson.M {
+func AddMeasureToGroupStage(measures []string) bson.M {
+	//TODO: when measures have been figured out, add a loop here
+	measureFunc := MeasureTypes[getMemberName(measures[0])]
+	return measureFunc()
+}
+
+func GenerateGroupStage(dimensions, measures []string, join *blockService.Join) bson.M {
 	groupStage := bson.M{}
 	for _, dimension := range dimensions {
 		memberName := getMemberName(dimension)
@@ -35,5 +51,6 @@ func GenerateGroupStage(dimensions []string, join *blockService.Join) bson.M {
 			groupStage[memberName] = "$" + memberName
 		}
 	}
-	return bson.M{"$group": bson.M{"_id": groupStage}}
+	measureStage := AddMeasureToGroupStage(measures)
+	return bson.M{"$group": bson.M{"_id": groupStage, getMemberName(measures[0]): measureStage}}
 }
