@@ -16,21 +16,19 @@ func (x *mongoDatabase) BuildDatabaseUri(dbData DatabaseInfo) string {
 	return "mongodb://" + dbData.DbUsername + ":" + dbData.DbPass + "@" + dbData.DbHost + ":" + dbData.DbPort
 }
 
-func (x *mongoDatabase) ConnectDatabase(dbData DatabaseInfo) *mongo.Database {
+func (x *mongoDatabase) ConnectDatabase(dbData DatabaseInfo) error {
 	uri := x.BuildDatabaseUri(dbData)
 	clientOptions := options.Client().ApplyURI(uri)
 	client, err := mongo.Connect(context.TODO(), clientOptions)
 	if err != nil {
-		fmt.Println(err)
-		return nil
+		return err
 	}
 	err = client.Ping(context.TODO(), nil)
 	if err != nil {
-		fmt.Println(err)
-		return nil
+		return err
 	}
 	x.db = client.Database(dbData.DbName)
-	return x.db
+	return nil
 }
 
 func (x *mongoDatabase) GetDatabaseConnection() *mongo.Database {

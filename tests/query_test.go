@@ -3,7 +3,8 @@ package tests
 import (
 	"dashboard/internal/database"
 	blockService "dashboard/internal/services/block"
-	query "dashboard/internal/services/noSqlQuery"
+	noSqlQuery "dashboard/internal/services/noSqlQuery"
+	query "dashboard/internal/services/query"
 	"log"
 	"testing"
 
@@ -61,8 +62,8 @@ func buildStoriesBlock() blockService.BlockData {
 	return block
 }
 
-func buildBlockQuery(name string) query.BlockQuery {
-	blockQuery := query.BlockQuery{
+func buildBlockQuery(name string) noSqlQuery.BlockQuery {
+	blockQuery := noSqlQuery.BlockQuery{
 		Measure:    []string{"count"},
 		Dimensions: []string{"category", "time"},
 		Name:       name,
@@ -70,8 +71,8 @@ func buildBlockQuery(name string) query.BlockQuery {
 	return blockQuery
 }
 
-func buildAllBlockQueries() []query.BlockQuery {
-	return []query.BlockQuery{buildBlockQuery("Stories"), buildBlockQuery("Movies")}
+func buildAllBlockQueries() []noSqlQuery.BlockQuery {
+	return []noSqlQuery.BlockQuery{buildBlockQuery("Stories"), buildBlockQuery("Movies")}
 }
 
 func TestQuery(t *testing.T) {
@@ -79,7 +80,7 @@ func TestQuery(t *testing.T) {
 	q := getQueryObject()
 
 	t.Run("ParseQuery", func(t *testing.T) {
-		res, err := query.ParseQuery(q)
+		res, err := noSqlQuery.ParseQuery(q)
 		if err != nil {
 			t.Fatalf("Err -> error during execution: %v", err)
 		}
@@ -91,7 +92,7 @@ func TestBuildGroupStage(t *testing.T) {
 	q := getQueryObject()
 	j := getJoinObject()
 	t.Run("Correct build stage", func(t *testing.T) {
-		res := query.GenerateGroupStage(q.Dimensions, q.Measures, &j)
+		res := noSqlQuery.GenerateGroupStage(q.Dimensions, q.Measures, &j)
 		log.Println(res)
 		s := res["$group"].(bson.M)
 		if s["_id"].(bson.M)["release_date"] != "$Movies.release_date" {
@@ -105,7 +106,7 @@ func TestFindJoin(t *testing.T) {
 		"Stories.category",
 		"Movies.release_date",
 	}
-	blockName := query.FindBlockWithJoin(dimensions)
+	blockName := noSqlQuery.FindBlockWithJoin(dimensions)
 	log.Println(blockName)
 	if blockName == nil {
 		t.Fatalf("Err -> \nReturned nil")

@@ -8,8 +8,20 @@ type DatabaseInfo struct {
 	DbName     string `json:"db_name"`
 }
 
+type IDatabase interface {
+	BuildDatabaseUri(DatabaseInfo) string
+	ConnectDatabase(DatabaseInfo) error
+}
+
 var mongoDb = &mongoDatabase{db: nil}
 var postgresDb = &postgresDatabase{db: nil}
+
+func GetCurrentDatabase() IDatabase {
+	if mongoDb.db == nil {
+		return postgresDb
+	}
+	return mongoDb
+}
 
 func GetMongoDatabase() *mongoDatabase {
 	return mongoDb

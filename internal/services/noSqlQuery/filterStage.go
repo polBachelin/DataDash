@@ -1,6 +1,7 @@
 package noSqlQuery
 
 import (
+	"dashboard/internal/services/query"
 	"errors"
 	"strings"
 
@@ -23,7 +24,7 @@ func FilterEquals(member string, value string) bson.M {
 	return bson.M{member: v}
 }
 
-func BuildFilterStage(filter Filter) (bson.M, error) {
+func BuildFilterStage(filter query.Filter) (bson.M, error) {
 	member := strings.Split(filter.Member, ".")[1]
 
 	filterFunc, ok := FilterTypes[filter.Operator]
@@ -34,7 +35,7 @@ func BuildFilterStage(filter Filter) (bson.M, error) {
 	return bson.M{"$match": stage}, nil
 }
 
-func BuildAllFilters(filters []Filter) ([]bson.M, error) {
+func BuildAllFilters(filters []query.Filter) ([]bson.M, error) {
 	filterStages := make([]bson.M, len(filters))
 
 	for i, filter := range filters {

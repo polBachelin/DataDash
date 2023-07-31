@@ -14,7 +14,7 @@ func (x *postgresDatabase) BuildDatabaseUri(dbData DatabaseInfo) string {
 	return "postgres://" + dbData.DbUsername + ":" + dbData.DbPass + "@" + dbData.DbHost + ":" + dbData.DbPort + "/" + dbData.DbName
 }
 
-func (x *postgresDatabase) ConnectDatabase(dbData DatabaseInfo) *sql.DB {
+func (x *postgresDatabase) ConnectDatabase(dbData DatabaseInfo) error {
 	uri := x.BuildDatabaseUri(dbData)
 	db, err := sql.Open("postgres", uri)
 	if err != nil {
@@ -22,11 +22,10 @@ func (x *postgresDatabase) ConnectDatabase(dbData DatabaseInfo) *sql.DB {
 	}
 	err = db.Ping()
 	if err != nil {
-		fmt.Println(err)
-		return nil
+		return err
 	}
 	x.db = db
-	return db
+	return nil
 }
 
 func (x *postgresDatabase) GetDatabaseConnection() *sql.DB {
