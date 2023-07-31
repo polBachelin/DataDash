@@ -1,4 +1,4 @@
-package query
+package noSqlQuery
 
 import (
 	blockService "dashboard/internal/services/block"

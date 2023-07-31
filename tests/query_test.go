@@ -3,7 +3,7 @@ package tests
 import (
 	"dashboard/internal/database"
 	blockService "dashboard/internal/services/block"
-	query "dashboard/internal/services/query"
+	query "dashboard/internal/services/noSqlQuery"
 	"log"
 	"testing"
 
@@ -13,7 +13,9 @@ import (
 // Need to connect to a test database
 func connectDb() {
 	data := database.DatabaseInfo{DbHost: "0.0.0.0", DbPort: "27017", DbUsername: "root", DbPass: "pass12345", DbName: "test"}
-	database.ConnectDatabase(data)
+	mongoDb := database.GetMongoDatabase()
+	mongoDb.ConnectDatabase(data)
+	database.SetMongoDatabase(mongoDb)
 }
 
 func getQueryObject() query.Query {

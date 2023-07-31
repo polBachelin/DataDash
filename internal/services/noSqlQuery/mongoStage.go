@@ -1,4 +1,4 @@
-package query
+package noSqlQuery
 
 import (
 	"context"
@@ -9,7 +9,7 @@ import (
 )
 
 func executeStages(stages []bson.M, collectionName string) []bson.M {
-	collection := database.GetCollection(collectionName)
+	collection := database.GetMongoDatabase().GetCollection(collectionName)
 	res, err := collection.Aggregate(context.TODO(), stages)
 	if err != nil {
 		log.Fatal(err)

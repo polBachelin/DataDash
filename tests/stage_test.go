@@ -1,7 +1,7 @@
 package tests
 
 import (
-	"dashboard/internal/services/query"
+	noSqlQuery "dashboard/internal/services/noSqlQuery"
 	"log"
 	"testing"
 
@@ -12,7 +12,7 @@ func TestBuildAFilter(t *testing.T) {
 	q := getQueryObject()
 
 	t.Run("correct filters", func(t *testing.T) {
-		res, err := query.BuildAllFilters(q.Filters)
+		res, err := noSqlQuery.BuildAllFilters(q.Filters)
 		log.Println(res)
 		if err != nil {
 			t.Fatalf("Err -> \nReturned error: %v", err)
@@ -29,7 +29,7 @@ func TestTimeDimensions(t *testing.T) {
 	q := getQueryObject()
 
 	t.Run("correct time", func(t *testing.T) {
-		res, err := query.BuildAllTimeDimensions(q.TimeDimensions)
+		res, err := noSqlQuery.BuildAllTimeDimensions(q.TimeDimensions)
 		if err != nil {
 			t.Fatalf("Err -> \nReturned error: %v", err)
 		}
