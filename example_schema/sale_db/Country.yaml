@@ -1,0 +1,11 @@
+blocks:
+  - name: Country
+    table: country
+    measures:
+      - name: count
+        sql: city_id
+        type: count
+    dimensions:
+      - name: name
+        sql: country_name
+        type: string

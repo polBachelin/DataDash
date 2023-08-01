@@ -1,0 +1,11 @@
+blocks:
+  - name: Users
+    table: public.users
+    measures:
+      - name: count
+        sql: user_id
+        type: count
+    dimensions:
+      - name: name
+        sql: name
+        type: string

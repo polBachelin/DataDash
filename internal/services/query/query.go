@@ -41,5 +41,6 @@ func NewQueryService(q Query, db database.IDatabase) *QueryService {
 }
 
 func (q *QueryService) ParseQuery() (string, error) {
+	//base := "SELECT %s FROM %s ORDER BY %s LIMIT %s"
 	return "", nil
 }

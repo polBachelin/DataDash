@@ -1,0 +1,26 @@
+blocks:
+  - name: Order_Status
+    table: order_status
+    joins:
+      - name: Sale
+        local_field: sale_id
+        foreign_field: sale_id
+        relationship: one_to_one
+      - name: Status
+        local_field: status_name_id
+        foreign_field: status_name_id
+        relationship: one_to_one
+    measures:
+      - name: count
+        sql: order_status_id
+        type: count
+    dimensions:
+      - name: update
+        sql: update_at
+        type: time
+      - name: saleId
+        sql: sale_id
+        type: number
+      - name: statusNameId
+        sql: status_name_id
+        type: number

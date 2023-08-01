@@ -1,0 +1,11 @@
+blocks:
+  - name: Status
+    table: public.status_name
+    measures:
+      - name: count
+        sql: status_name_id
+        type: count
+    dimensions:
+      - name: name
+        sql: status_name
+        type: string

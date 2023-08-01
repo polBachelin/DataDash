@@ -1,0 +1,16 @@
+blocks:
+  - name: Store
+    table: store
+    joins:
+      - name: City
+        local_field: city_id
+        foreign_field: city_id
+        relationship: one_to_one
+    measures:
+      - name: count
+        sql: store_id
+        type: count
+    dimensions:
+      - name: name
+        sql: name
+        type: string

@@ -1,0 +1,11 @@
+blocks:
+  - name: Product
+    table: product
+    measures:
+      - name: count
+        sql: product_id
+        type: count
+    dimensions:
+      - name: name
+        sql: name
+        type: string

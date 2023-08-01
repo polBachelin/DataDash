@@ -1,0 +1,27 @@
+blocks:
+  - name: Sale
+    table: sale
+    joins:
+      - name: Product
+        local_field: product_id
+        foreign_field: product_id
+        relationship: one_to_one
+      - name: Users
+        local_field: user_id
+        foreign_field: user_id
+        relationship: one_to_one
+      - name: Store
+        local_field: store_id
+        foreign_field: store_id
+        relationship: one_to_one
+    measures:
+      - name: count
+        sql: sale_id
+        type: count
+    dimensions:
+      - name: amount
+        sql: amount
+        type: number
+      - name: date
+        sql: date
+        type: time

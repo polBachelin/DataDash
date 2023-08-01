@@ -1,0 +1,20 @@
+blocks:
+  - name: City
+    table: public.city
+    joins:
+      - name: Country
+        local_field: country_id
+        foreign_field: country_id
+        relationship: one_to_one
+    measures:
+      - name: count
+        sql: city_id
+        type: count
+    dimensions:
+      - name: name
+        sql: city_name
+        type: string
+      - name: country_id
+        sql: country_id
+        type: number
+        primary_key: true

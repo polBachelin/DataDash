@@ -1,6 +1,6 @@
 blocks:
   - name: Stories
-    sql: Stories
+    table: Stories
     joins:
       - name: Movies
         local_field: movie_id
@@ -25,7 +25,7 @@ blocks:
         type: string
         sql: time
   - name: Movies
-    sql: Movies
+    table: Movies
     measures:
       - name: count
         sql: _id
