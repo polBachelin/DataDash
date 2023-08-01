@@ -3,7 +3,7 @@ blocks:
     table: country
     measures:
       - name: count
-        sql: city_id
+        sql: country_id
         type: count
     dimensions:
       - name: name

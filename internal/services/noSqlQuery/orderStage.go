@@ -9,10 +9,10 @@ import (
 func generateOrderStage(order query.Order) bson.M {
 	sort := bson.M{}
 	for i, dimension := range order.DimensionName {
-		sort[dimension] = getOrderType(getMemberName(order.DimensionOrder[i]))
+		sort[dimension] = getOrderType(query.GetMemberName(order.DimensionOrder[i]))
 	}
 	for i, measure := range order.MeasureName {
-		sort[measure] = getOrderType(getMemberName(order.MeasureOrder[i]))
+		sort[measure] = getOrderType(query.GetMemberName(order.MeasureOrder[i]))
 	}
 	return bson.M{"$sort": sort}
 }

@@ -1,6 +1,11 @@
 package query
 
-import "dashboard/internal/database"
+import (
+	"dashboard/internal/database"
+	"dashboard/internal/services/block"
+	"dashboard/internal/services/sqlStages"
+	"strings"
+)
 
 type Query struct {
 	Measures       []string        `json:"measures"`
@@ -32,15 +37,36 @@ type Order struct {
 }
 
 type QueryService struct {
-	Q  Query
-	Db database.IDatabase
+	Query Query
+	Db    database.IDatabase
 }
 
 func NewQueryService(q Query, db database.IDatabase) *QueryService {
-	return &QueryService{Q: q, Db: db}
+	return &QueryService{Query: q, Db: db}
 }
 
-func (q *QueryService) ParseQuery() (string, error) {
-	//base := "SELECT %s FROM %s ORDER BY %s LIMIT %s"
+func AddSelectToString(members []string, f func(string, *block.BlockData) string, res *strings.Builder) {
+	memberLen := len(members)
+	for i, m := range members {
+		blockData := block.GetBlockFromName(GetBlockName(m))
+		s := sqlStages.GenerateMeasureSelect(m, blockData)
+		res.WriteString(s)
+		if i+1 < memberLen {
+			res.WriteRune(',')
+		}
+	}
+}
+
+func (service *QueryService) GenerateSelectStage() string {
+	var result strings.Builder
+
+	result.WriteString("SELECT ")
+	AddSelectToString(service.Query.Measures, sqlStages.GenerateMeasureSelect, &result)
+	AddSelectToString(service.Query.Dimensions, sqlStages.GenerateDimensionSelect, &result)
+	return result.String()
+}
+
+func (service *QueryService) ParseQuery() (string, error) {
+	//base := "SELECT %s"
 	return "", nil
 }

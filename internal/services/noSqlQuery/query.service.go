@@ -22,9 +22,9 @@ type ResultData struct {
 
 func FindBlockWithJoin(dimensions []string) *blockService.Join {
 	for i, dimension := range dimensions {
-		block := blockService.GetBlockFromName(getBlockName(dimension))
+		block := blockService.GetBlockFromName(query.GetBlockName(dimension))
 		for _, join := range block.Joins {
-			if hasBlockName(dimensions[i+1:], join.Name) {
+			if query.HasBlockName(dimensions[i+1:], join.Name) {
 				return &join
 			}
 		}

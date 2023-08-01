@@ -1,33 +1,33 @@
-package noSqlQuery
+package query
 
 import (
 	"strings"
 )
 
-func getBlockName(dimension string) string {
+func GetBlockName(dimension string) string {
 	parts := strings.Split(dimension, ".")
 	return parts[0]
 }
 
-func hasBlockName(dimensions []string, targetDimension string) bool {
+func HasBlockName(dimensions []string, targetDimension string) bool {
 	for _, dimension := range dimensions {
-		if getBlockName(dimension) == targetDimension {
+		if GetBlockName(dimension) == targetDimension {
 			return true
 		}
 	}
 	return false
 }
 
-func getMemberName(dimension string) string {
+func GetMemberName(dimension string) string {
 	parts := strings.Split(dimension, ".")
 	return parts[1]
 }
 
-func hasTwoDifferentBlocks(dimensions []string) bool {
+func HasTwoDifferentBlocks(dimensions []string) bool {
 	blockCount := make(map[string]int)
 
 	for _, dimension := range dimensions {
-		blockName := getBlockName(dimension)
+		blockName := GetBlockName(dimension)
 		blockCount[blockName]++
 	}
 
@@ -41,7 +41,7 @@ func hasTwoDifferentBlocks(dimensions []string) bool {
 	return blockCountSize >= 2
 }
 
-func containsDimension(dimensions []string, dimension string) bool {
+func ContainsDimension(dimensions []string, dimension string) bool {
 	for _, d := range dimensions {
 		if d == dimension {
 			return true

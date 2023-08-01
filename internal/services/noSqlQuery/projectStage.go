@@ -1,6 +1,10 @@
 package noSqlQuery
 
-import "go.mongodb.org/mongo-driver/bson"
+import (
+	"dashboard/internal/services/query"
+
+	"go.mongodb.org/mongo-driver/bson"
+)
 
 func generateProjectStage(dimensions, measures []string) bson.M {
 	projectStage := bson.M{
@@ -8,12 +12,12 @@ func generateProjectStage(dimensions, measures []string) bson.M {
 	}
 
 	for _, dimension := range dimensions {
-		memberName := getMemberName(dimension)
+		memberName := query.GetMemberName(dimension)
 		projectStage["$project"].(bson.M)[memberName] = "$_id." + memberName
 	}
 
 	for _, measure := range measures {
-		projectStage["$project"].(bson.M)[getMemberName(measure)] = 1
+		projectStage["$project"].(bson.M)[query.GetMemberName(measure)] = 1
 	}
 	return projectStage
 }

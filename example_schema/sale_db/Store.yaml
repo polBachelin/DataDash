@@ -14,3 +14,7 @@ blocks:
       - name: name
         sql: name
         type: string
+      - name: cityId
+        sql: city_id
+        type: number
+        primary_key: true

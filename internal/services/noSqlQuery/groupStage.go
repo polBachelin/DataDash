@@ -2,6 +2,7 @@ package noSqlQuery
 
 import (
 	blockService "dashboard/internal/services/block"
+	"dashboard/internal/services/query"
 	"log"
 
 	"go.mongodb.org/mongo-driver/bson"
@@ -36,15 +37,15 @@ func BuildGroupStage(block blockService.BlockData, joinChildIndex int, blockQuer
 
 func AddMeasureToGroupStage(measures []string) bson.M {
 	//TODO: when measures have been figured out, add a loop here
-	measureFunc := MeasureTypes[getMemberName(measures[0])]
+	measureFunc := MeasureTypes[query.GetMemberName(measures[0])]
 	return measureFunc()
 }
 
 func GenerateGroupStage(dimensions, measures []string, join *blockService.Join) bson.M {
 	groupStage := bson.M{}
 	for _, dimension := range dimensions {
-		memberName := getMemberName(dimension)
-		blockName := getBlockName(dimension)
+		memberName := query.GetMemberName(dimension)
+		blockName := query.GetBlockName(dimension)
 		if join != nil && blockName == join.Name {
 			groupStage[memberName] = "$" + join.Name + "." + memberName
 		} else {
@@ -52,5 +53,5 @@ func GenerateGroupStage(dimensions, measures []string, join *blockService.Join) 
 		}
 	}
 	measureStage := AddMeasureToGroupStage(measures)
-	return bson.M{"$group": bson.M{"_id": groupStage, getMemberName(measures[0]): measureStage}}
+	return bson.M{"$group": bson.M{"_id": groupStage, query.GetMemberName(measures[0]): measureStage}}
 }
