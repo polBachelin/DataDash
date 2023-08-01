@@ -1,7 +1,6 @@
 package noSqlQuery
 
 import (
-	blockService "dashboard/internal/services/block"
 	"dashboard/internal/services/query"
 	"log"
 
@@ -18,18 +17,6 @@ type ResultData struct {
 	Measure       string `json:"result"`
 	Dimension     string `json:"dimension"`
 	DimensionType string `json:"dimension_type"`
-}
-
-func FindBlockWithJoin(dimensions []string) *blockService.Join {
-	for i, dimension := range dimensions {
-		block := blockService.GetBlockFromName(query.GetBlockName(dimension))
-		for _, join := range block.Joins {
-			if query.HasBlockName(dimensions[i+1:], join.Name) {
-				return &join
-			}
-		}
-	}
-	return nil
 }
 
 func ParseQuery(q query.Query) ([]bson.M, error) {
@@ -51,7 +38,7 @@ func ParseQuery(q query.Query) ([]bson.M, error) {
 		stages = append(stages, timeDimensionStage...)
 	}
 
-	join := FindBlockWithJoin(q.Dimensions)
+	join := query.FindBlockWithJoin(q.Dimensions)
 	if join != nil {
 		lookupStage := BuildLookupStage(*join)
 		stages = append(stages, lookupStage)

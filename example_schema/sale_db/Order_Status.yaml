@@ -6,7 +6,7 @@ blocks:
         local_field: sale_id
         foreign_field: sale_id
         relationship: one_to_one
-      - name: Status
+      - name: Status_name
         local_field: status_name_id
         foreign_field: status_name_id
         relationship: one_to_one
@@ -21,6 +21,7 @@ blocks:
       - name: saleId
         sql: sale_id
         type: number
+        primary_key: true
       - name: statusNameId
         sql: status_name_id
         type: number

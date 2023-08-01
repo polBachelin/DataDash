@@ -1,8 +1,21 @@
 package query
 
 import (
+	"dashboard/internal/services/block"
 	"strings"
 )
+
+func FindBlockWithJoin(dimensions []string) *block.Join {
+	for i, dimension := range dimensions {
+		block := block.GetBlockFromName(GetBlockName(dimension))
+		for _, join := range block.Joins {
+			if HasBlockName(dimensions[i+1:], join.Name) {
+				return &join
+			}
+		}
+	}
+	return nil
+}
 
 func GetBlockName(dimension string) string {
 	parts := strings.Split(dimension, ".")
@@ -23,21 +36,23 @@ func GetMemberName(dimension string) string {
 	return parts[1]
 }
 
-func HasTwoDifferentBlocks(dimensions []string) bool {
+func HasTwoDifferentBlocks(dimensions []string, measures []string) bool {
 	blockCount := make(map[string]int)
 
 	for _, dimension := range dimensions {
 		blockName := GetBlockName(dimension)
 		blockCount[blockName]++
 	}
-
+	for _, measure := range measures {
+		blockName := GetBlockName(measure)
+		blockCount[blockName]++
+	}
 	blockCountSize := 0
 	for _, count := range blockCount {
 		if count > 0 {
 			blockCountSize++
 		}
 	}
-
 	return blockCountSize >= 2
 }
 

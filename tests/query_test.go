@@ -44,8 +44,8 @@ func getJoinObject() blockService.Join {
 
 func buildStoriesBlock() blockService.BlockData {
 	block := blockService.BlockData{
-		Name: "Stories",
-		Sql:  "Stories",
+		Name:  "Stories",
+		Table: "Stories",
 		Joins: []blockService.Join{
 			{Name: "Movies", LocalField: "Stories.movie_id", ForeignField: "Movies.id", Relationship: "one_to_one"},
 		},
@@ -106,7 +106,7 @@ func TestFindJoin(t *testing.T) {
 		"Stories.category",
 		"Movies.release_date",
 	}
-	blockName := noSqlQuery.FindBlockWithJoin(dimensions)
+	blockName := query.FindBlockWithJoin(dimensions)
 	log.Println(blockName)
 	if blockName == nil {
 		t.Fatalf("Err -> \nReturned nil")

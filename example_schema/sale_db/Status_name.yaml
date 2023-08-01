@@ -1,5 +1,5 @@
 blocks:
-  - name: Status
+  - name: Status_name
     table: public.status_name
     measures:
       - name: count
