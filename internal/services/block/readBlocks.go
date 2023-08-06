@@ -2,8 +2,8 @@ package block
 
 import (
 	"fmt"
-	"io/ioutil"
 	"log"
+	"os"
 	"path/filepath"
 
 	"gopkg.in/yaml.v2"
@@ -12,7 +12,7 @@ import (
 //TODO: need to validate yaml file for required and optional fields
 
 func ReadBlockFile(filename string) (*FileData, error) {
-	buf, err := ioutil.ReadFile(filename)
+	buf, err := os.ReadFile(filename)
 	if err != nil {
 		return nil, err
 	}
@@ -25,7 +25,7 @@ func ReadBlockFile(filename string) (*FileData, error) {
 }
 
 func ReadAllBlocks(directory string) ([]*FileData, error) {
-	entries, err := ioutil.ReadDir(directory)
+	entries, err := os.ReadDir(directory)
 	if err != nil {
 		log.Fatalf("Error in directory: %v", err)
 		return nil, err

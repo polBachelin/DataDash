@@ -1,6 +1,7 @@
 package block
 
 import (
+	"dashboard/pkg/utils"
 	"log"
 	"sync"
 )
@@ -18,8 +19,9 @@ func GetInstance() *single {
 		lock.Lock()
 		defer lock.Unlock()
 		if singleInstance == nil {
+			path := utils.GetEnvVar("SCHEMA_PATH", "./example_schema/sale_db")
 			log.Println("Creating single instance now.")
-			data, err := ReadAllBlocks("./example_schema")
+			data, err := ReadAllBlocks(path)
 			if err != nil {
 				log.Println("Error trying to read all blocks: ", err)
 			} else {

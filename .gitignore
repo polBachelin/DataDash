@@ -17,3 +17,5 @@ vendor/
 
 # Go workspace file
 go.work
+
+set_env.sh
