@@ -65,11 +65,15 @@ func (graph *JoinGraph) Neighbors(srcKey string) []BlockData {
 
 func (graph *JoinGraph) FindJoinPath(startVertex *Vertex, targetVertexName string) ([]string, bool) {
 	visited := make(map[string]bool)
-	path, found := graph.Dfs(startVertex, targetVertexName, visited)
+	path, found := graph.DfsWithPath(startVertex, targetVertexName, visited)
 	if !found {
 		parentVertex := graph.FindVertexWithEdge(startVertex.Val.Name)
+		if parentVertex == nil {
+			return nil, false
+		}
 		log.Println("Did not find vertex, getting parent and trying again : ", parentVertex.Val.Name)
-		path, found = graph.Dfs(parentVertex, targetVertexName, make(map[string]bool))
+		path, found = graph.DfsWithPath(parentVertex, targetVertexName, make(map[string]bool))
+		path = append(path, startVertex.Val.Name)
 	}
 	return path, found
 }
@@ -83,7 +87,7 @@ func (graph *JoinGraph) FindVertexWithEdge(targetVertexName string) *Vertex {
 	return nil
 }
 
-func (graph *JoinGraph) Dfs(currentVertex *Vertex, targetVertexName string, visited map[string]bool) ([]string, bool) {
+func (graph *JoinGraph) DfsWithPath(currentVertex *Vertex, targetVertexName string, visited map[string]bool) ([]string, bool) {
 	visited[currentVertex.Val.Name] = true
 
 	if currentVertex.Val.Name == targetVertexName {
@@ -95,7 +99,7 @@ func (graph *JoinGraph) Dfs(currentVertex *Vertex, targetVertexName string, visi
 		log.Printf("At edge %v", edgeName)
 		if !visited[edgeName] {
 			log.Printf("Edge has not been visted going further")
-			if path, found := graph.Dfs(edge.Vertex, targetVertexName, visited); found {
+			if path, found := graph.DfsWithPath(edge.Vertex, targetVertexName, visited); found {
 				return append(path, currentVertex.Val.Name), true
 			}
 		}

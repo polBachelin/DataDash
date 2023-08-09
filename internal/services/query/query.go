@@ -4,6 +4,7 @@ import (
 	"dashboard/internal/database"
 	"dashboard/internal/services/block"
 	"dashboard/internal/services/sqlStages"
+	"fmt"
 	"strings"
 )
 
@@ -99,23 +100,26 @@ func (query *Query) GenerateLeftJoinStage(graph *block.JoinGraph) string {
 	if startVertex, found := graph.Vertices[startTableName]; found {
 		path, relationshipFound := graph.FindJoinPath(startVertex, targetTableName)
 		if relationshipFound {
-			joins := query.GenerateJoinClause(path)
+			joins := query.GenerateJoinClause(path, graph)
 			return joins
 		}
 	}
 	return ""
 }
 
-func (query *Query) GenerateJoinClause(path []string) string {
+func (query *Query) GenerateJoinClause(path []string, graph *block.JoinGraph) string {
 	var joins strings.Builder
 
-	// for i := len(path) - 2; i >= 0; i++ {
-	// 	fromVertex := path[i]
-	// 	toVertex := path[i+1]
+	for i := len(path) - 1; i >= 0; i-- {
+		fromVertex := graph.Vertices[path[i]]
+		toVertex := graph.Vertices[path[i-1]]
 
-	// 	edgeName := strings.ToLower(toVertex) // NEED TO RETRIEVE BLOCK TO GET FOREIGN AND LOCAL KEY
-	// 	//joins = append(joins, fmt.Sprintf("LEFT JOIN %s ON %s.%s = %s.%s", fromVertex,)
-	// }
+		joinParent, err := block.GetBlockJoinFromName(toVertex.Val.Name, *fromVertex.Val)
+		if err != nil {
+			joinParent, err = block.GetBlockJoinFromName(fromVertex.Val.Name, *toVertex.Val) //Order_status
+		}
+		joins.WriteString(fmt.Sprintf("LEFT JOIN %s as %s ON %s.%s = %s.%s", toVertex.Val.Table, toVertex.Val.Name, toVertex.Val.Name, joinParent.LocalField, joinParent.Name, joinParent.ForeignField))
+	}
 	return joins.String()
 }
 
