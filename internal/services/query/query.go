@@ -5,6 +5,7 @@ import (
 	"dashboard/internal/services/block"
 	"dashboard/internal/services/sqlStages"
 	"fmt"
+	"log"
 	"strings"
 )
 
@@ -39,11 +40,11 @@ type Order struct {
 
 type QueryService struct {
 	Query     Query
-	JoinGraph block.JoinGraph
+	JoinGraph *block.JoinGraph
 	Db        database.IDatabase
 }
 
-func NewQueryService(q Query, db database.IDatabase, joinGraph block.JoinGraph) *QueryService {
+func NewQueryService(q Query, db database.IDatabase, joinGraph *block.JoinGraph) *QueryService {
 	return &QueryService{Query: q, Db: db, JoinGraph: joinGraph}
 }
 
@@ -51,8 +52,9 @@ func AddSelectToString(members []string, f func(string, *block.BlockData) string
 	memberLen := len(members)
 	for i, m := range members {
 		blockData := block.GetBlockFromName(GetBlockName(m))
-		s := sqlStages.GenerateMeasureSelect(m, blockData)
+		s := sqlStages.GenerateMeasureSelect(GetMemberName(m), blockData)
 		res.WriteString(s)
+		log.Println(s)
 		if i+1 < memberLen {
 			res.WriteRune(',')
 		}
@@ -63,17 +65,19 @@ func (query *Query) GenerateSelectStage() string {
 	var result strings.Builder
 
 	result.WriteString("SELECT ")
-	AddSelectToString(query.Dimensions, sqlStages.GenerateDimensionSelect, &result)
 	AddSelectToString(query.Measures, sqlStages.GenerateMeasureSelect, &result)
+	AddSelectToString(query.Dimensions, sqlStages.GenerateDimensionSelect, &result)
 	return result.String()
 }
 
 func (query *Query) GetParentTableName() string {
 	if len(query.Measures) > 0 {
-		return block.GetBlockFromName(GetBlockName(query.Measures[0])).Table
+		b := block.GetBlockFromName(GetBlockName(query.Measures[0]))
+		return fmt.Sprintf("%s as %s", b.Table, b.Name)
 	}
 	if len(query.Dimensions) > 0 {
-		return block.GetBlockFromName(GetBlockName(query.Dimensions[0])).Table
+		b := block.GetBlockFromName(GetBlockName(query.Dimensions[0]))
+		return fmt.Sprintf("%s as %s", b.Table, b.Name)
 	}
 	return ""
 }
@@ -123,19 +127,21 @@ func (query *Query) GenerateJoinClause(path []string, graph *block.JoinGraph) st
 	return joins.String()
 }
 
-func (query *Query) GenerateFromStage() string {
+func (query *Query) GenerateFromStage(graph *block.JoinGraph) string {
 	var result strings.Builder
 
 	result.WriteString("FROM ")
 	result.WriteString(query.GetParentTableName())
 	if HasTwoDifferentBlocks(query.Dimensions, query.Measures) {
-		result.WriteString(query.GenerateLeftJoinStage())
+		result.WriteString(query.GenerateLeftJoinStage(graph))
 	}
 	return result.String()
 }
 
 func (service *QueryService) ParseQuery() (string, error) {
 	selectStage := service.Query.GenerateSelectStage()
+	fromStage := service.Query.GenerateFromStage(service.JoinGraph)
 
+	log.Println("GENERATED SQL : ", selectStage, fromStage)
 	return "", nil
 }

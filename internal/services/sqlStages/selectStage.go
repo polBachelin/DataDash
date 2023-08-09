@@ -1,21 +1,24 @@
 package sqlStages
 
-import "dashboard/internal/services/block"
+import (
+	"dashboard/internal/services/block"
+	"fmt"
+)
 
-type MeasureTypeFunc func(string) string
+type MeasureTypeFunc func(string, string) string
 
 var MeasureTypes = map[string]MeasureTypeFunc{
 	"count": MeasureCount,
 }
 
-func MeasureCount(sql string) string {
-	return "count(" + sql + ")"
+func MeasureCount(sql, tableName string) string {
+	return fmt.Sprintf("count(%v.%v)", tableName, sql)
 }
 
 func GenerateMeasureSelect(measure string, blockData *block.BlockData) string {
 	for _, m := range blockData.Measures {
 		if m.Name == measure {
-			return MeasureTypes[m.Type](m.Sql)
+			return MeasureTypes[m.Type](m.Sql, blockData.Name)
 		}
 	}
 	return ""
