@@ -44,11 +44,11 @@ func (graph *JoinGraph) AddVertex(key string, val *BlockData) {
 
 func (graph *JoinGraph) AddEdge(srcKey, destKey string) {
 	if _, ok := graph.Vertices[srcKey]; !ok {
-		log.Println("NOT BUILDING EDGE because of srcKey :", srcKey)
+		log.Println("NOT BUILDING EDGE because srcKey does not exist :", srcKey)
 		return
 	}
 	if _, ok := graph.Vertices[destKey]; !ok {
-		log.Println("NOT BUILDING EDGE because of destKey :", destKey)
+		log.Println("NOT BUILDING EDGE because destKey does not exist :", destKey)
 		return
 	}
 	graph.Vertices[srcKey].Edges[destKey] = &Edge{Vertex: graph.Vertices[destKey]}
@@ -61,6 +61,46 @@ func (graph *JoinGraph) Neighbors(srcKey string) []BlockData {
 		result = append(result, *edge.Vertex.Val)
 	}
 	return result
+}
+
+func (graph *JoinGraph) FindJoinPath(startVertex *Vertex, targetVertexName string) ([]string, bool) {
+	visited := make(map[string]bool)
+	path, found := graph.Dfs(startVertex, targetVertexName, visited)
+	if !found {
+		parentVertex := graph.FindVertexWithEdge(startVertex.Val.Name)
+		log.Println("Did not find vertex, getting parent and trying again : ", parentVertex.Val.Name)
+		path, found = graph.Dfs(parentVertex, targetVertexName, make(map[string]bool))
+	}
+	return path, found
+}
+
+func (graph *JoinGraph) FindVertexWithEdge(targetVertexName string) *Vertex {
+	for _, vertex := range graph.Vertices {
+		if _, found := vertex.Edges[targetVertexName]; found {
+			return vertex
+		}
+	}
+	return nil
+}
+
+func (graph *JoinGraph) Dfs(currentVertex *Vertex, targetVertexName string, visited map[string]bool) ([]string, bool) {
+	visited[currentVertex.Val.Name] = true
+
+	if currentVertex.Val.Name == targetVertexName {
+		log.Println("Found targetVertex : ", targetVertexName)
+		return []string{currentVertex.Val.Name}, true
+	}
+
+	for edgeName, edge := range currentVertex.Edges {
+		log.Printf("At edge %v", edgeName)
+		if !visited[edgeName] {
+			log.Printf("Edge has not been visted going further")
+			if path, found := graph.Dfs(edge.Vertex, targetVertexName, visited); found {
+				return append(path, currentVertex.Val.Name), true
+			}
+		}
+	}
+	return nil, false
 }
 
 func (graph *JoinGraph) printGraph() {

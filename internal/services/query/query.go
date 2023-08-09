@@ -37,12 +37,13 @@ type Order struct {
 }
 
 type QueryService struct {
-	Query Query
-	Db    database.IDatabase
+	Query     Query
+	JoinGraph block.JoinGraph
+	Db        database.IDatabase
 }
 
-func NewQueryService(q Query, db database.IDatabase) *QueryService {
-	return &QueryService{Query: q, Db: db}
+func NewQueryService(q Query, db database.IDatabase, joinGraph block.JoinGraph) *QueryService {
+	return &QueryService{Query: q, Db: db, JoinGraph: joinGraph}
 }
 
 func AddSelectToString(members []string, f func(string, *block.BlockData) string, res *strings.Builder) {
@@ -91,21 +92,31 @@ func GetBlockThatHasJoin(name string) *block.BlockData {
 	return nil
 }
 
-func (query *Query) GenerateLeftJoinStage() string {
-	blockInstance := block.GetInstance().Blocks
+func (query *Query) GenerateLeftJoinStage(graph *block.JoinGraph) string {
+	startTableName := query.GetParentTableName()
+	targetTableName := "Status_name"
 
-	for i, measure := range query.Measures {
-		dimension := query.Dimensions[i]
-		if strings.HasPrefix(measure, GetBlockName(dimension)) {
-			continue
+	if startVertex, found := graph.Vertices[startTableName]; found {
+		path, relationshipFound := graph.FindJoinPath(startVertex, targetTableName)
+		if relationshipFound {
+			joins := query.GenerateJoinClause(path)
+			return joins
 		}
-		measureBlock := block.GetBlockFromName(GetBlockName(measure))
-		dimensionBlock := block.GetBlockFromName(GetBlockName(dimension))
-		if len(measureBlock.Joins) == 0 || len(dimensionBlock.Joins) == 0 {
-			return ""
-		}
-
 	}
+	return ""
+}
+
+func (query *Query) GenerateJoinClause(path []string) string {
+	var joins strings.Builder
+
+	// for i := len(path) - 2; i >= 0; i++ {
+	// 	fromVertex := path[i]
+	// 	toVertex := path[i+1]
+
+	// 	edgeName := strings.ToLower(toVertex) // NEED TO RETRIEVE BLOCK TO GET FOREIGN AND LOCAL KEY
+	// 	//joins = append(joins, fmt.Sprintf("LEFT JOIN %s ON %s.%s = %s.%s", fromVertex,)
+	// }
+	return joins.String()
 }
 
 func (query *Query) GenerateFromStage() string {
@@ -120,7 +131,6 @@ func (query *Query) GenerateFromStage() string {
 }
 
 func (service *QueryService) ParseQuery() (string, error) {
-	//base := "SELECT %s"
 	selectStage := service.Query.GenerateSelectStage()
 
 	return "", nil
