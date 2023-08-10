@@ -66,7 +66,9 @@ func (query *Query) GenerateSelectStage() string {
 
 	result.WriteString("SELECT ")
 	AddSelectToString(query.Measures, sqlStages.GenerateMeasureSelect, &result)
-	result.WriteRune(',')
+	if len(query.Dimensions) > 0 {
+		result.WriteRune(',')
+	}
 	AddSelectToString(query.Dimensions, sqlStages.GenerateDimensionSelect, &result)
 	return result.String()
 }
@@ -74,11 +76,11 @@ func (query *Query) GenerateSelectStage() string {
 func (query *Query) GetParentTableName() string {
 	if len(query.Measures) > 0 {
 		b := block.GetBlockFromName(GetBlockName(query.Measures[0]))
-		return fmt.Sprintf("%s as %s", b.Table, b.Name)
+		return b.Name
 	}
 	if len(query.Dimensions) > 0 {
 		b := block.GetBlockFromName(GetBlockName(query.Dimensions[0]))
-		return fmt.Sprintf("%s as %s", b.Table, b.Name)
+		return b.Name
 	}
 	return ""
 }
@@ -102,6 +104,7 @@ func (query *Query) GenerateLeftJoinStage(graph *block.JoinGraph) string {
 	startTableName := query.GetParentTableName()
 	targetTableName := "Status_name"
 
+	log.Printf("startTableName=%s", startTableName)
 	if startVertex, found := graph.Vertices[startTableName]; found {
 		path, relationshipFound := graph.FindJoinPath(startVertex, targetTableName)
 		if relationshipFound {
@@ -115,7 +118,8 @@ func (query *Query) GenerateLeftJoinStage(graph *block.JoinGraph) string {
 func (query *Query) GenerateJoinClause(path []string, graph *block.JoinGraph) string {
 	var joins strings.Builder
 
-	for i := len(path) - 1; i >= 0; i-- {
+	log.Printf("Join clause path = %s", path)
+	for i := len(path) - 1; i >= 1; i-- {
 		fromVertex := graph.Vertices[path[i]]
 		toVertex := graph.Vertices[path[i-1]]
 
