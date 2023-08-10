@@ -3,6 +3,7 @@ package sqlStages
 import (
 	"dashboard/internal/services/block"
 	"fmt"
+	"log"
 )
 
 type MeasureTypeFunc func(string, string) string
@@ -26,8 +27,10 @@ func GenerateMeasureSelect(measure string, blockData *block.BlockData) string {
 
 func GenerateDimensionSelect(dimension string, blockData *block.BlockData) string {
 	for _, d := range blockData.Dimensions {
+		log.Println("dimension:", d.Name)
+		log.Println("dimension:", dimension)
 		if d.Name == dimension {
-			return d.Sql
+			return fmt.Sprintf("%v.%v", blockData.Name, d.Sql)
 		}
 	}
 	return ""

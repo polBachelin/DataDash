@@ -17,7 +17,7 @@ func connectDb() {
 func getQueryObject() Query {
 	q := Query{}
 	q.Measures = []string{"Sale.count"}
-	q.Dimensions = []string{"Status_name.status_name"}
+	q.Dimensions = []string{"Status_name.name"}
 	f := Filter{}
 	q.Filters = []Filter{f}
 	timeDimension := TimeDimension{}

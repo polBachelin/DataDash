@@ -48,11 +48,11 @@ func NewQueryService(q Query, db database.IDatabase, joinGraph *block.JoinGraph)
 	return &QueryService{Query: q, Db: db, JoinGraph: joinGraph}
 }
 
-func AddSelectToString(members []string, f func(string, *block.BlockData) string, res *strings.Builder) {
+func AddSelectToString(members []string, genFunc func(string, *block.BlockData) string, res *strings.Builder) {
 	memberLen := len(members)
 	for i, m := range members {
 		blockData := block.GetBlockFromName(GetBlockName(m))
-		s := sqlStages.GenerateMeasureSelect(GetMemberName(m), blockData)
+		s := genFunc(GetMemberName(m), blockData)
 		res.WriteString(s)
 		log.Println(s)
 		if i+1 < memberLen {
@@ -66,6 +66,7 @@ func (query *Query) GenerateSelectStage() string {
 
 	result.WriteString("SELECT ")
 	AddSelectToString(query.Measures, sqlStages.GenerateMeasureSelect, &result)
+	result.WriteRune(',')
 	AddSelectToString(query.Dimensions, sqlStages.GenerateDimensionSelect, &result)
 	return result.String()
 }
