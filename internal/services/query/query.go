@@ -102,7 +102,7 @@ func GetBlockThatHasJoin(name string) *block.BlockData {
 
 func (query *Query) GenerateLeftJoinStage(graph *block.JoinGraph) string {
 	startTableName := query.GetParentTableName()
-	targetTableName := "Status_name"
+	targetTableName := "Status_name" //Need to get this from query
 
 	log.Printf("startTableName=%s", startTableName)
 	if startVertex, found := graph.Vertices[startTableName]; found {
@@ -125,9 +125,9 @@ func (query *Query) GenerateJoinClause(path []string, graph *block.JoinGraph) st
 
 		joinParent, err := block.GetBlockJoinFromName(toVertex.Val.Name, *fromVertex.Val)
 		if err != nil {
-			joinParent, err = block.GetBlockJoinFromName(fromVertex.Val.Name, *toVertex.Val) //Order_status
+			joinParent, err = block.GetBlockJoinFromName(fromVertex.Val.Name, *toVertex.Val)
 		}
-		joins.WriteString(fmt.Sprintf("LEFT JOIN %s as %s ON %s.%s = %s.%s", toVertex.Val.Table, toVertex.Val.Name, toVertex.Val.Name, joinParent.LocalField, joinParent.Name, joinParent.ForeignField))
+		joins.WriteString(fmt.Sprintf(" LEFT JOIN %s as %s ON %s.%s = %s.%s", toVertex.Val.Table, toVertex.Val.Name, toVertex.Val.Name, joinParent.LocalField, joinParent.Name, joinParent.ForeignField))
 	}
 	return joins.String()
 }
@@ -143,10 +143,25 @@ func (query *Query) GenerateFromStage(graph *block.JoinGraph) string {
 	return result.String()
 }
 
+func (query *Query) GenerateGroupByStage() string {
+	var result strings.Builder
+
+	result.WriteString("GROUP BY ")
+	n := len(query.Measures) + 1
+	for i := range query.Dimensions {
+		result.WriteString(fmt.Sprintf("%d", i+n))
+		if i < len(query.Dimensions)-1 {
+			result.WriteRune(',')
+		}
+	}
+	return result.String()
+}
+
 func (service *QueryService) ParseQuery() (string, error) {
 	selectStage := service.Query.GenerateSelectStage()
 	fromStage := service.Query.GenerateFromStage(service.JoinGraph)
+	groupByStage := service.Query.GenerateGroupByStage()
 
-	log.Println("GENERATED SQL : ", selectStage, fromStage)
+	log.Println("GENERATED SQL : ", selectStage, fromStage, groupByStage)
 	return "", nil
 }
