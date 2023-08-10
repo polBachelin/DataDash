@@ -18,11 +18,12 @@ func SetDatabase(c *gin.Context) {
 		c.JSON(400, "Error in body request")
 		return
 	}
-	mongoDb := database.GetMongoDatabase()
-	res := mongoDb.ConnectDatabase(dbData)
-	if res == nil {
+	postgres := database.GetPostgresDatabase()
+	res := postgres.ConnectDatabase(dbData)
+	if res != nil {
 		c.JSON(500, "Error connecting to database")
+		return
 	}
-	database.SetMongoDatabase(mongoDb)
+	database.SetPostgresDatabase(postgres)
 	c.JSON(200, "Successfully connected to database")
 }

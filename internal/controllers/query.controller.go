@@ -12,7 +12,7 @@ import (
 func PostQuery(c *gin.Context) {
 	var query queryService.Query
 
-	if database.GetMongoDatabase() == nil {
+	if database.GetPostgresDatabase() == nil {
 		c.JSON(400, "Error please connect to database first")
 		return
 	}
@@ -23,7 +23,7 @@ func PostQuery(c *gin.Context) {
 		return
 	}
 	b := block.GetInstance().Blocks
-	service := queryService.NewQueryService(query, database.GetCurrentDatabase(), *block.NewGraph(b))
+	service := queryService.NewQueryService(query, database.GetCurrentDatabase(), block.NewGraph(b))
 	res, err := service.ParseQuery()
 	if err != nil {
 		c.JSON(500, "Internal error")

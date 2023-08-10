@@ -42,3 +42,8 @@ func (x *mongoDatabase) GetDatabaseConnection() *mongo.Database {
 func (x *mongoDatabase) GetCollection(name string) *mongo.Collection {
 	return x.GetDatabaseConnection().Collection(name)
 }
+
+func (x *mongoDatabase) ExecuteQuery(query interface{}) (interface{}, error) {
+	//TODO : implement this for mongoDB driver, query needs to be a []bson.M
+	return nil, nil
+}

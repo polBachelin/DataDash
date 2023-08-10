@@ -4,6 +4,7 @@ import (
 	"dashboard/internal/database"
 	"dashboard/internal/services/block"
 	"dashboard/internal/services/sqlStages"
+	"database/sql"
 	"fmt"
 	"log"
 	"strings"
@@ -104,7 +105,6 @@ func (query *Query) GenerateLeftJoinStage(graph *block.JoinGraph) string {
 	startTableName := query.GetParentTableName()
 	targetTableName := "Status_name" //Need to get this from query
 
-	log.Printf("startTableName=%s", startTableName)
 	if startVertex, found := graph.Vertices[startTableName]; found {
 		path, relationshipFound := graph.FindJoinPath(startVertex, targetTableName)
 		if relationshipFound {
@@ -118,7 +118,6 @@ func (query *Query) GenerateLeftJoinStage(graph *block.JoinGraph) string {
 func (query *Query) GenerateJoinClause(path []string, graph *block.JoinGraph) string {
 	var joins strings.Builder
 
-	log.Printf("Join clause path = %s", path)
 	for i := len(path) - 1; i >= 1; i-- {
 		fromVertex := graph.Vertices[path[i]]
 		toVertex := graph.Vertices[path[i-1]]
@@ -135,7 +134,7 @@ func (query *Query) GenerateJoinClause(path []string, graph *block.JoinGraph) st
 func (query *Query) GenerateFromStage(graph *block.JoinGraph) string {
 	var result strings.Builder
 
-	result.WriteString("FROM ")
+	result.WriteString(" FROM ")
 	result.WriteString(query.GetParentTableName())
 	if HasTwoDifferentBlocks(query.Dimensions, query.Measures) {
 		result.WriteString(query.GenerateLeftJoinStage(graph))
@@ -146,7 +145,7 @@ func (query *Query) GenerateFromStage(graph *block.JoinGraph) string {
 func (query *Query) GenerateGroupByStage() string {
 	var result strings.Builder
 
-	result.WriteString("GROUP BY ")
+	result.WriteString(" GROUP BY ")
 	n := len(query.Measures) + 1
 	for i := range query.Dimensions {
 		result.WriteString(fmt.Sprintf("%d", i+n))
@@ -157,11 +156,46 @@ func (query *Query) GenerateGroupByStage() string {
 	return result.String()
 }
 
-func (service *QueryService) ParseQuery() (string, error) {
-	selectStage := service.Query.GenerateSelectStage()
-	fromStage := service.Query.GenerateFromStage(service.JoinGraph)
-	groupByStage := service.Query.GenerateGroupByStage()
+func (service *QueryService) ParseQuery() ([]map[string]interface{}, error) {
+	var sqlQuery strings.Builder
 
-	log.Println("GENERATED SQL : ", selectStage, fromStage, groupByStage)
-	return "", nil
+	sqlQuery.WriteString(service.Query.GenerateSelectStage())
+	sqlQuery.WriteString(service.Query.GenerateFromStage(service.JoinGraph))
+	sqlQuery.WriteString(service.Query.GenerateGroupByStage())
+
+	log.Println("GENERATED SQL : ", sqlQuery.String())
+	sqlResult, err := service.Db.ExecuteQuery(sqlQuery.String())
+	sqlRows := sqlResult.(*sql.Rows)
+	if err != nil {
+
+		return nil, nil
+	}
+	columns, err := sqlRows.Columns()
+	if err != nil {
+		log.Println("Error in retrieving columns: ", err)
+		return nil, err
+	}
+	fmt.Println("Columns: ", columns)
+	values := make([]interface{}, len(columns))
+	for i := range values {
+		var v interface{}
+		values[i] = &v
+	}
+	var resJson []map[string]interface{}
+	for sqlRows.Next() {
+		err := sqlRows.Scan(values...)
+		if err != nil {
+			log.Println("Error: ", err)
+		}
+		rowData := make(map[string]interface{})
+		for i, colName := range columns {
+			rowData[colName] = *values[i].(*interface{})
+		}
+		resJson = append(resJson, rowData)
+	}
+	if err = sqlRows.Err(); err != nil {
+		return nil, err
+	}
+	defer sqlRows.Close()
+	return resJson, nil
 }
