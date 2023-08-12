@@ -51,7 +51,7 @@ func NewQueryService(q Query, db database.IDatabase, joinGraph *block.JoinGraph)
 func AddSelectToString(members []string, genFunc func(string, *block.BlockData) string, res *strings.Builder) {
 	memberLen := len(members)
 	for i, m := range members {
-		blockData := block.GetBlockFromName(GetBlockName(m))
+		blockData := block.GetBlockFromName(block.GetBlockName(m))
 		s := genFunc(GetMemberName(m), blockData)
 		res.WriteString(s)
 		log.Println(s)
@@ -73,46 +73,18 @@ func (query *Query) GenerateSelectStage() string {
 	return result.String()
 }
 
-func GetAllBlockNamesDifferent(compare string, members []string) []string {
-	var res []string
-
-	for _, member := range members {
-		blockName := GetBlockName(member)
-		if blockName != compare {
-			b := block.GetBlockFromName(blockName)
-			res = append(res, b.Name)
-		}
-	}
-	return res
-}
-
 func (query *Query) GetStartAndTargetTables() (string, []string) {
 	if len(query.Measures) > 0 {
-		b := block.GetBlockFromName(GetBlockName(query.Measures[0]))
-		t := GetAllBlockNamesDifferent(b.Name, query.Dimensions)
+		b := block.GetBlockFromName(block.GetBlockName(query.Measures[0]))
+		t := block.GetAllBlockNamesDifferent(b.Name, query.Dimensions)
 		return b.Name, t
 	}
 	if len(query.Dimensions) > 0 {
-		b := block.GetBlockFromName(GetBlockName(query.Dimensions[0]))
-		t := GetAllBlockNamesDifferent(b.Name, query.Measures)
+		b := block.GetBlockFromName(block.GetBlockName(query.Dimensions[0]))
+		t := block.GetAllBlockNamesDifferent(b.Name, query.Measures)
 		return b.Name, t
 	}
 	return "", nil
-}
-
-func GetBlockThatHasJoin(name string) *block.BlockData {
-	blockInstance := block.GetInstance().Blocks
-
-	for _, fileData := range blockInstance {
-		for _, block := range fileData.Blocks {
-			for _, blockJoin := range block.Joins {
-				if blockJoin.Name == name {
-					return &block
-				}
-			}
-		}
-	}
-	return nil
 }
 
 func (query *Query) GenerateLeftJoinStage(graph *block.JoinGraph) string {

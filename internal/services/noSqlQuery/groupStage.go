@@ -1,6 +1,7 @@
 package noSqlQuery
 
 import (
+	"dashboard/internal/services/block"
 	blockService "dashboard/internal/services/block"
 	"dashboard/internal/services/query"
 	"log"
@@ -45,7 +46,7 @@ func GenerateGroupStage(dimensions, measures []string, join *blockService.Join) 
 	groupStage := bson.M{}
 	for _, dimension := range dimensions {
 		memberName := query.GetMemberName(dimension)
-		blockName := query.GetBlockName(dimension)
+		blockName := block.GetBlockName(dimension)
 		if join != nil && blockName == join.Name {
 			groupStage[memberName] = "$" + join.Name + "." + memberName
 		} else {

@@ -2,6 +2,7 @@ package block
 
 import (
 	"errors"
+	"strings"
 
 	"golang.org/x/exp/slices"
 )
@@ -61,4 +62,37 @@ func GetBlockJoinFromName(name string, block *BlockData) (Join, error) {
 		return block.Joins[join], nil
 	}
 	return Join{}, errors.New("No join found for name: " + name)
+}
+
+func GetAllBlockNamesDifferent(compare string, members []string) []string {
+	var res []string
+
+	for _, member := range members {
+		blockName := GetBlockName(member)
+		if blockName != compare {
+			b := GetBlockFromName(blockName)
+			res = append(res, b.Name)
+		}
+	}
+	return res
+}
+
+func GetBlockName(dimension string) string {
+	parts := strings.Split(dimension, ".")
+	return parts[0]
+}
+
+func GetBlockThatHasJoin(name string) *BlockData {
+	blockInstance := GetInstance().Blocks
+
+	for _, fileData := range blockInstance {
+		for _, block := range fileData.Blocks {
+			for _, blockJoin := range block.Joins {
+				if blockJoin.Name == name {
+					return &block
+				}
+			}
+		}
+	}
+	return nil
 }
