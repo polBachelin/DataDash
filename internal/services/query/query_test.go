@@ -23,7 +23,7 @@ func connectDb() bool {
 func getQueryObject() Query {
 	q := Query{}
 	q.Measures = []string{"Sale.count"}
-	q.Dimensions = []string{"Status_name.name"}
+	q.Dimensions = []string{"Sale.amount"}
 	f := Filter{}
 	q.Filters = []Filter{f}
 	timeDimension := TimeDimension{}
@@ -46,6 +46,7 @@ func TestSqlGeneration(t *testing.T) {
 		t.Fatalf("Could not connect to db")
 	}
 	t.Run("SqlGeneration", func(t *testing.T) {
-		service.ParseQuery()
+		json, _ := service.ParseQuery()
+		log.Println(json)
 	})
 }

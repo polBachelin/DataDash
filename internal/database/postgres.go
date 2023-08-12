@@ -68,7 +68,17 @@ func (x *postgresDatabase) QueryResultToJson(rows interface{}) ([]map[string]int
 		}
 		rowData := make(map[string]interface{})
 		for i, colName := range columns {
-			rowData[colName] = *values[i].(*interface{})
+			val := *values[i].(*interface{})
+			switch v := val.(type) {
+			case nil:
+				rowData[colName] = nil
+			case int64, int32, int16, int8, float64, float32:
+				rowData[colName] = v
+			case []byte:
+				rowData[colName] = string(v)
+			default:
+				rowData[colName] = val
+			}
 		}
 		resJson = append(resJson, rowData)
 	}
