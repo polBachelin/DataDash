@@ -15,13 +15,12 @@ func MeasureCount(sql, tableName string) string {
 	return fmt.Sprintf("count(%v.%v)", tableName, sql)
 }
 
-func GenerateMeasureSelect(measure string, blockData *block.BlockData) string {
-	for _, m := range blockData.Measures {
-		if m.Name == measure {
-			return MeasureTypes[m.Type](m.Sql, blockData.Name)
-		}
+func GenerateMeasureSql(measure string, blockData *block.BlockData) string {
+	m, err := block.GetMeasureFromBlock(blockData, measure)
+	if err != nil {
+		return ""
 	}
-	return ""
+	return MeasureTypes[m.Type](m.Sql, blockData.Name)
 }
 
 func GenerateDimensionSelect(dimension string, blockData *block.BlockData) string {

@@ -2,6 +2,7 @@ package block
 
 import (
 	"errors"
+	"fmt"
 	"strings"
 
 	"golang.org/x/exp/slices"
@@ -95,4 +96,12 @@ func GetBlockThatHasJoin(name string) *BlockData {
 		}
 	}
 	return nil
+}
+
+func GetMeasureFromBlock(blockData *BlockData, measure string) (*Measures, error) {
+	measureIndex := slices.IndexFunc(blockData.Measures, func(m Measures) bool { return m.Name == measure })
+	if measureIndex == -1 {
+		return nil, fmt.Errorf("no measure found for block %s", blockData.Name)
+	}
+	return &blockData.Measures[measureIndex], nil
 }

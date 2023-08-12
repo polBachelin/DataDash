@@ -7,6 +7,8 @@ import (
 	"fmt"
 	"log"
 	"strings"
+
+	"golang.org/x/exp/slices"
 )
 
 type Query struct {
@@ -44,6 +46,8 @@ type QueryService struct {
 	Db        database.IDatabase
 }
 
+var MeasureFilters = []string{"equals", "notEquals", "gte", "gt", "lt", "lte", "set", "notSet"}
+
 func NewQueryService(q Query, db database.IDatabase, joinGraph *block.JoinGraph) *QueryService {
 	return &QueryService{Query: q, Db: db, JoinGraph: joinGraph}
 }
@@ -65,7 +69,7 @@ func (query *Query) GenerateSelectStage() string {
 	var result strings.Builder
 
 	result.WriteString("SELECT ")
-	AddSelectToString(query.Measures, sqlStages.GenerateMeasureSelect, &result)
+	AddSelectToString(query.Measures, sqlStages.GenerateMeasureSql, &result)
 	if len(query.Dimensions) > 0 && len(query.Measures) > 0 {
 		result.WriteRune(',')
 	}
@@ -148,11 +152,32 @@ func (query *Query) GenerateFilterStage() string {
 	var result strings.Builder
 
 	for _, filter := range query.Filters {
-		b := block.GetBlockFromName(block.GetBlockName(filter.Operator))
-		f := sqlStages.GenerateFilters(b, filter.Values, filter.Operator)
+		b := block.GetBlockFromName(block.GetBlockName(filter.Member))
+		f, _ := sqlStages.GenerateFilter(b, filter.Values, GetMemberName(filter.Member), filter.Operator)
 		result.WriteString(f)
 	}
 	return result.String()
+}
+
+func (query *Query) FilterHasMeasure() (bool, error) {
+	for _, filter := range query.Filters {
+		b := block.GetBlockFromName(block.GetBlockName(filter.Member))
+		if slices.ContainsFunc(b.Measures, func(data block.Measures) bool { return data.Name == GetMemberName(filter.Member) }) {
+			if !slices.Contains(MeasureFilters, filter.Operator) {
+				return false, fmt.Errorf("operator %s cannot be applied to measures", filter.Operator)
+			}
+			return true, nil
+		}
+	}
+	return false, nil
+}
+
+func (query *Query) GenerateLimitStage() string {
+	return fmt.Sprintf(" LIMIT %v", query.Limit)
+}
+
+func (query *Query) GenerateOffsetStage() string {
+	return fmt.Sprintf(" OFFSET %v", query.Offset)
 }
 
 func (service *QueryService) ParseQuery() ([]map[string]interface{}, error) {
@@ -160,8 +185,28 @@ func (service *QueryService) ParseQuery() ([]map[string]interface{}, error) {
 
 	sqlQuery.WriteString(service.Query.GenerateSelectStage())
 	sqlQuery.WriteString(service.Query.GenerateFromStage(service.JoinGraph))
-	sqlQuery.WriteString(service.Query.GenerateGroupByStage())
-	sqlQuery.WriteString(service.Query.GenerateFilterStage())
+	filterStage := service.Query.GenerateFilterStage()
+	//TODO: I believe this can be optimized seems repetitive
+	//This does not work because you can multiple filters
+	if len(service.Query.Filters) > 0 || len(service.Query.TimeDimensions) > 0 {
+		sqlQuery.WriteString(" WHERE ")
+	}
+	for _, filter := range service.Query.Filters {
+		b := block.GetBlockFromName(block.GetBlockName(filter.Member))
+		f, _ := sqlStages.GenerateFilter(b, filter.Values, GetMemberName(filter.Member), filter.Operator)
+		sqlQuery.WriteString(f)
+		sqlQuery.WriteString(" AND ")
+	}
+
+	if strings.Contains(filterStage, "HAVING") {
+		sqlQuery.WriteString(filterStage)
+		sqlQuery.WriteString(service.Query.GenerateGroupByStage())
+	} else {
+		sqlQuery.WriteString(service.Query.GenerateGroupByStage())
+		sqlQuery.WriteString(filterStage)
+	}
+	sqlQuery.WriteString(service.Query.GenerateLimitStage())
+	sqlQuery.WriteString(service.Query.GenerateOffsetStage())
 	sqlResult, err := service.Db.ExecuteQuery(sqlQuery.String())
 	if err != nil {
 		return nil, err
