@@ -47,3 +47,34 @@ func (x *postgresDatabase) ExecuteQuery(query interface{}) (interface{}, error) 
 	}
 	return res, nil
 }
+
+func (x *postgresDatabase) QueryResultToJson(rows interface{}) ([]map[string]interface{}, error) {
+	sqlRows := rows.(*sql.Rows)
+	columns, err := sqlRows.Columns()
+	if err != nil {
+		log.Println("Error in retrieving columns: ", err)
+		return nil, err
+	}
+	values := make([]interface{}, len(columns))
+	for i := range values {
+		var v interface{}
+		values[i] = &v
+	}
+	var resJson []map[string]interface{}
+	for sqlRows.Next() {
+		err := sqlRows.Scan(values...)
+		if err != nil {
+			log.Println("Error: ", err)
+		}
+		rowData := make(map[string]interface{})
+		for i, colName := range columns {
+			rowData[colName] = *values[i].(*interface{})
+		}
+		resJson = append(resJson, rowData)
+	}
+	if err = sqlRows.Err(); err != nil {
+		return nil, err
+	}
+	defer sqlRows.Close()
+	return resJson, nil
+}

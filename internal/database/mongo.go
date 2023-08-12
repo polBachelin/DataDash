@@ -47,3 +47,7 @@ func (x *mongoDatabase) ExecuteQuery(query interface{}) (interface{}, error) {
 	//TODO : implement this for mongoDB driver, query needs to be a []bson.M
 	return nil, nil
 }
+
+func (x *mongoDatabase) QueryResultToJson(result interface{}) ([]map[string]interface{}, error) {
+	return nil, nil
+}

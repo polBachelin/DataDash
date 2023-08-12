@@ -55,7 +55,7 @@ func GetBlockFromName(name string) *BlockData {
 	return nil
 }
 
-func GetBlockJoinFromName(name string, block BlockData) (Join, error) {
+func GetBlockJoinFromName(name string, block *BlockData) (Join, error) {
 	join := slices.IndexFunc(block.Joins, func(data Join) bool { return data.Name == name })
 	if join != -1 {
 		return block.Joins[join], nil

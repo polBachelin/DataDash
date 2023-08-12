@@ -4,7 +4,6 @@ import (
 	"dashboard/internal/database"
 	"dashboard/internal/services/block"
 	"dashboard/internal/services/sqlStages"
-	"database/sql"
 	"fmt"
 	"log"
 	"strings"
@@ -74,16 +73,31 @@ func (query *Query) GenerateSelectStage() string {
 	return result.String()
 }
 
-func (query *Query) GetParentTableName() string {
+func GetAllBlockNamesDifferent(compare string, members []string) []string {
+	var res []string
+
+	for _, member := range members {
+		blockName := GetBlockName(member)
+		if blockName != compare {
+			b := block.GetBlockFromName(blockName)
+			res = append(res, b.Name)
+		}
+	}
+	return res
+}
+
+func (query *Query) GetStartAndTargetTables() (string, []string) {
 	if len(query.Measures) > 0 {
 		b := block.GetBlockFromName(GetBlockName(query.Measures[0]))
-		return b.Name
+		t := GetAllBlockNamesDifferent(b.Name, query.Dimensions)
+		return b.Name, t
 	}
 	if len(query.Dimensions) > 0 {
 		b := block.GetBlockFromName(GetBlockName(query.Dimensions[0]))
-		return b.Name
+		t := GetAllBlockNamesDifferent(b.Name, query.Measures)
+		return b.Name, t
 	}
-	return ""
+	return "", nil
 }
 
 func GetBlockThatHasJoin(name string) *block.BlockData {
@@ -102,14 +116,15 @@ func GetBlockThatHasJoin(name string) *block.BlockData {
 }
 
 func (query *Query) GenerateLeftJoinStage(graph *block.JoinGraph) string {
-	startTableName := query.GetParentTableName()
-	targetTableName := "Status_name" //Need to get this from query
+	startTableName, targetTableNames := query.GetStartAndTargetTables()
 
-	if startVertex, found := graph.Vertices[startTableName]; found {
-		path, relationshipFound := graph.FindJoinPath(startVertex, targetTableName)
-		if relationshipFound {
-			joins := query.GenerateJoinClause(path, graph)
-			return joins
+	for _, targetTable := range targetTableNames {
+		if startVertex, found := graph.Vertices[startTableName]; found {
+			path, relationshipFound := graph.FindJoinPath(startVertex, targetTable)
+			if relationshipFound {
+				joins := query.GenerateJoinClause(path, graph)
+				return joins
+			}
 		}
 	}
 	return ""
@@ -122,11 +137,14 @@ func (query *Query) GenerateJoinClause(path []string, graph *block.JoinGraph) st
 		fromVertex := graph.Vertices[path[i]]
 		toVertex := graph.Vertices[path[i-1]]
 
-		joinParent, err := block.GetBlockJoinFromName(toVertex.Val.Name, *fromVertex.Val)
+		joinParent, err := block.GetBlockJoinFromName(toVertex.Val.Name, fromVertex.Val)
+		log.Println("Getting parent from: ", toVertex.Val.Name)
+		log.Println("From vertex: ", fromVertex.Val.Name)
+		log.Println("Joinparent: ", joinParent.Name)
 		if err != nil {
-			joinParent, err = block.GetBlockJoinFromName(fromVertex.Val.Name, *toVertex.Val)
+			joinParent, _ = block.GetBlockJoinFromName(fromVertex.Val.Name, toVertex.Val)
 		}
-		joins.WriteString(fmt.Sprintf(" LEFT JOIN %s as %s ON %s.%s = %s.%s", toVertex.Val.Table, toVertex.Val.Name, toVertex.Val.Name, joinParent.LocalField, joinParent.Name, joinParent.ForeignField))
+		joins.WriteString(fmt.Sprintf(" LEFT JOIN %s as %s ON %s.%s = %s.%s", toVertex.Val.Table, toVertex.Val.Name, toVertex.Val.Name, joinParent.LocalField, fromVertex.Val.Name, joinParent.ForeignField))
 	}
 	return joins.String()
 }
@@ -135,7 +153,8 @@ func (query *Query) GenerateFromStage(graph *block.JoinGraph) string {
 	var result strings.Builder
 
 	result.WriteString(" FROM ")
-	result.WriteString(query.GetParentTableName())
+	parentTable, _ := query.GetStartAndTargetTables()
+	result.WriteString(parentTable)
 	if HasTwoDifferentBlocks(query.Dimensions, query.Measures) {
 		result.WriteString(query.GenerateLeftJoinStage(graph))
 	}
@@ -162,40 +181,13 @@ func (service *QueryService) ParseQuery() ([]map[string]interface{}, error) {
 	sqlQuery.WriteString(service.Query.GenerateSelectStage())
 	sqlQuery.WriteString(service.Query.GenerateFromStage(service.JoinGraph))
 	sqlQuery.WriteString(service.Query.GenerateGroupByStage())
-
-	log.Println("GENERATED SQL : ", sqlQuery.String())
 	sqlResult, err := service.Db.ExecuteQuery(sqlQuery.String())
-	sqlRows := sqlResult.(*sql.Rows)
 	if err != nil {
-
-		return nil, nil
-	}
-	columns, err := sqlRows.Columns()
-	if err != nil {
-		log.Println("Error in retrieving columns: ", err)
 		return nil, err
 	}
-	fmt.Println("Columns: ", columns)
-	values := make([]interface{}, len(columns))
-	for i := range values {
-		var v interface{}
-		values[i] = &v
-	}
-	var resJson []map[string]interface{}
-	for sqlRows.Next() {
-		err := sqlRows.Scan(values...)
-		if err != nil {
-			log.Println("Error: ", err)
-		}
-		rowData := make(map[string]interface{})
-		for i, colName := range columns {
-			rowData[colName] = *values[i].(*interface{})
-		}
-		resJson = append(resJson, rowData)
-	}
-	if err = sqlRows.Err(); err != nil {
+	resJson, err := service.Db.QueryResultToJson(sqlResult)
+	if err != nil {
 		return nil, err
 	}
-	defer sqlRows.Close()
 	return resJson, nil
 }
