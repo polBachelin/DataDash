@@ -5,7 +5,6 @@ import (
 	"dashboard/internal/services/block"
 	"dashboard/internal/services/sqlStages"
 	"fmt"
-	"log"
 	"strings"
 
 	"golang.org/x/exp/slices"
@@ -52,29 +51,21 @@ func NewQueryService(q Query, db database.IDatabase, joinGraph *block.JoinGraph)
 	return &QueryService{Query: q, Db: db, JoinGraph: joinGraph}
 }
 
-func AddSelectToString(members []string, genFunc func(string, *block.BlockData) string, res *strings.Builder) {
-	memberLen := len(members)
-	for i, m := range members {
-		blockData := block.GetBlockFromName(block.GetBlockName(m))
-		s := genFunc(GetMemberName(m), blockData)
-		res.WriteString(s)
-		log.Println(s)
-		if i+1 < memberLen {
-			res.WriteRune(',')
-		}
-	}
+func AddSelectToString(member string, genFunc func(string, *block.BlockData) string) string {
+	blockData := block.GetBlockFromName(block.GetBlockName(member))
+	return genFunc(GetMemberName(member), blockData)
 }
 
-func (query *Query) GenerateSelectStage() string {
-	var result strings.Builder
+func (query *Query) GenerateSelectStage() []string {
+	var result []string
 
-	result.WriteString("SELECT ")
-	AddSelectToString(query.Measures, sqlStages.GenerateMeasureSql, &result)
-	if len(query.Dimensions) > 0 && len(query.Measures) > 0 {
-		result.WriteRune(',')
+	for _, measure := range query.Measures {
+		result = append(result, AddSelectToString(measure, sqlStages.GenerateMeasureSql))
 	}
-	AddSelectToString(query.Dimensions, sqlStages.GenerateDimensionSelect, &result)
-	return result.String()
+	for _, dimension := range query.Dimensions {
+		result = append(result, AddSelectToString(dimension, sqlStages.GenerateDimensionSelect))
+	}
+	return result
 }
 
 func (query *Query) GetStartAndTargetTables() (string, []string) {
@@ -134,27 +125,16 @@ func (query *Query) GenerateFromStage(graph *block.JoinGraph) string {
 	return result.String()
 }
 
-func (query *Query) GenerateGroupByStage() string {
+func (query *Query) GenerateGroupByStage(totalSelect int) string {
 	var result strings.Builder
 
 	result.WriteString(" GROUP BY ")
 	n := len(query.Measures) + 1
-	for i := range query.Dimensions {
+	for i := 0; i < totalSelect; i++ {
 		result.WriteString(fmt.Sprintf("%d", i+n))
 		if i < len(query.Dimensions)-1 {
 			result.WriteRune(',')
 		}
-	}
-	return result.String()
-}
-
-func (query *Query) GenerateFilterStage() string {
-	var result strings.Builder
-
-	for _, filter := range query.Filters {
-		b := block.GetBlockFromName(block.GetBlockName(filter.Member))
-		f, _ := sqlStages.GenerateFilter(b, filter.Values, GetMemberName(filter.Member), filter.Operator)
-		result.WriteString(f)
 	}
 	return result.String()
 }
@@ -180,31 +160,63 @@ func (query *Query) GenerateOffsetStage() string {
 	return fmt.Sprintf(" OFFSET %v", query.Offset)
 }
 
+func (query *Query) GenerateTimeDimensionStage(index int) (string, string) {
+	timeD := query.TimeDimensions[index]
+	b := block.GetBlockFromName(block.GetBlockName(timeD.Dimension))
+	memberName := GetMemberName(timeD.Dimension)
+	return fmt.Sprintf("date_trunc('%v', (%v.%v :: timestamptz AT TIME ZONE 'UTC') %v_%v_%v)", timeD.Granularity, b.Table, memberName, b.Table, memberName, timeD.Granularity), fmt.Sprintf("(%v.%v >= '%v' :: timestamptz AND %v.%v <= '%v' :: timestamptz)", b.Table, memberName, timeD.DateRange[0], b.Table, memberName, timeD.DateRange[1])
+}
+
+type FilterContext struct {
+	isMember bool
+	Sql      string
+}
+
+func (service *QueryService) BuildStage(stage []string, start string, seperator string) string {
+	var result strings.Builder
+
+	stageLen := len(stage)
+	result.WriteString(start)
+	for i, stage := range stage {
+		result.WriteString(stage)
+		if i < stageLen-1 {
+			result.WriteString(seperator)
+		}
+	}
+	return result.String()
+}
+
 func (service *QueryService) ParseQuery() ([]map[string]interface{}, error) {
 	var sqlQuery strings.Builder
+	var whereStage []string
 
-	sqlQuery.WriteString(service.Query.GenerateSelectStage())
+	selectStage := service.Query.GenerateSelectStage()
 	sqlQuery.WriteString(service.Query.GenerateFromStage(service.JoinGraph))
-	filterStage := service.Query.GenerateFilterStage()
 	//TODO: I believe this can be optimized seems repetitive
 	//This does not work because you can multiple filters
-	if len(service.Query.Filters) > 0 || len(service.Query.TimeDimensions) > 0 {
-		sqlQuery.WriteString(" WHERE ")
+	if len(service.Query.Filters) > 0 {
+		filterMap := make(map[string]FilterContext)
+		for _, filter := range service.Query.Filters {
+			b := block.GetBlockFromName(block.GetBlockName(filter.Member))
+			f, isHaving, _ := sqlStages.GenerateFilter(b, filter.Values, GetMemberName(filter.Member), filter.Operator)
+			filterMap[filter.Member] = FilterContext{isMember: isHaving, Sql: f}
+		}
+		for key, value := range filterMap {
+			if !value.isMember {
+				whereStage = append(whereStage, value.Sql)
+				sqlQuery.WriteString(value.Sql)
+				delete(filterMap, key)
+			}
+		}
 	}
-	for _, filter := range service.Query.Filters {
-		b := block.GetBlockFromName(block.GetBlockName(filter.Member))
-		f, _ := sqlStages.GenerateFilter(b, filter.Values, GetMemberName(filter.Member), filter.Operator)
-		sqlQuery.WriteString(f)
-		sqlQuery.WriteString(" AND ")
+	if len(service.Query.TimeDimensions) > 0 {
+		selectTimeD, whereTimeD := service.Query.GenerateTimeDimensionStage(0)
+		selectStage = append(selectStage, selectTimeD)
+		whereStage = append(whereStage, whereTimeD)
 	}
-
-	if strings.Contains(filterStage, "HAVING") {
-		sqlQuery.WriteString(filterStage)
-		sqlQuery.WriteString(service.Query.GenerateGroupByStage())
-	} else {
-		sqlQuery.WriteString(service.Query.GenerateGroupByStage())
-		sqlQuery.WriteString(filterStage)
-	}
+	sqlQuery.WriteString(service.BuildStage(selectStage, "SELECT ", ", "))
+	sqlQuery.WriteString(service.BuildStage(whereStage, "WHERE ", " AND "))
+	sqlQuery.WriteString(service.Query.GenerateGroupByStage(len(selectStage)))
 	sqlQuery.WriteString(service.Query.GenerateLimitStage())
 	sqlQuery.WriteString(service.Query.GenerateOffsetStage())
 	sqlResult, err := service.Db.ExecuteQuery(sqlQuery.String())
