@@ -138,9 +138,6 @@ func (query *Query) GenerateJoinClause(path []string, graph *block.JoinGraph) st
 		toVertex := graph.Vertices[path[i-1]]
 
 		joinParent, err := block.GetBlockJoinFromName(toVertex.Val.Name, fromVertex.Val)
-		log.Println("Getting parent from: ", toVertex.Val.Name)
-		log.Println("From vertex: ", fromVertex.Val.Name)
-		log.Println("Joinparent: ", joinParent.Name)
 		if err != nil {
 			joinParent, _ = block.GetBlockJoinFromName(fromVertex.Val.Name, toVertex.Val)
 		}
