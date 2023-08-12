@@ -8,7 +8,7 @@ This tool's idea and documentation is heavily inspired from https://cube.dev/. H
 Blocks are defined by YAML files. They represent a table of data
 
 ```json
-cubes:
+blocks:
   - name: Users
     sql: SELECT * FROM USERS
     joins:
@@ -33,9 +33,9 @@ cubes:
         sql: country
 ```
 
-The \***\*BLOCK\*\*** references the current block
+The **BLOCK** references the current block
 
-Every block in schema can have its own **\*\***data_source**\*\***
+Every block in schema can have its own **data_source**
 
 ## Query Properties
 
