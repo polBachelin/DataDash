@@ -144,12 +144,24 @@ func (query *Query) GenerateGroupByStage() string {
 	return result.String()
 }
 
+func (query *Query) GenerateFilterStage() string {
+	var result strings.Builder
+
+	for _, filter := range query.Filters {
+		b := block.GetBlockFromName(block.GetBlockName(filter.Operator))
+		f := sqlStages.GenerateFilters(b, filter.Values, filter.Operator)
+		result.WriteString(f)
+	}
+	return result.String()
+}
+
 func (service *QueryService) ParseQuery() ([]map[string]interface{}, error) {
 	var sqlQuery strings.Builder
 
 	sqlQuery.WriteString(service.Query.GenerateSelectStage())
 	sqlQuery.WriteString(service.Query.GenerateFromStage(service.JoinGraph))
 	sqlQuery.WriteString(service.Query.GenerateGroupByStage())
+	sqlQuery.WriteString(service.Query.GenerateFilterStage())
 	sqlResult, err := service.Db.ExecuteQuery(sqlQuery.String())
 	if err != nil {
 		return nil, err

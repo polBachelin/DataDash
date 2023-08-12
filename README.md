@@ -55,3 +55,18 @@ A Query has the following properties:
 - `order`: An object, where the keys are measures or dimensions to order by and
   their corresponding values are either `asc` or `desc`. The order of the fields
   to order on is based on the order of the keys in the object.
+
+### Filter Operators
+
+- `equals`: use when you need an exact match. If you use it on a dimension of type boolean the values will be ignored. Supports multiple values
+- `notEquals`: The opposite of equals. Supports multiple values
+- `contains`: Acts as a wildcard case-insensitive LIKE operator. Supports multiple values
+- `notContains`: Opposite of contains. Supports multiple values
+- `startsWith`: To check if a string starts with a substring. Supports multiple values
+- `endsWith`: To check if a string ends with a substring. Supports multiple values
+- `gt`: The greater than operator
+- `gte`: The great than or equal operator
+- `lt`: The less than operator
+- `lte`: The less than or equal operator
+- `set`: This operator checks if the value is not null
+- `notSet`: This operator checks if the value is null
