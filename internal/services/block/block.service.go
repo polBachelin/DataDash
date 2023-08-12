@@ -105,3 +105,12 @@ func GetMeasureFromBlock(blockData *BlockData, measure string) (*Measures, error
 	}
 	return &blockData.Measures[measureIndex], nil
 }
+
+func GetDimensionFromBlock(blockData *BlockData, dimension string) (*Dimensions, error) {
+	measureIndex := slices.IndexFunc(blockData.Dimensions, func(m Dimensions) bool { return m.Name == dimension })
+	if measureIndex == -1 {
+		return nil, fmt.Errorf("no measure found for block %s", blockData.Name)
+	}
+	return &blockData.Dimensions[measureIndex], nil
+
+}

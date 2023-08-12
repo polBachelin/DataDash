@@ -24,9 +24,9 @@ func getQueryObject() Query {
 	q := Query{}
 	q.Measures = []string{"Sale.count"}
 	q.Dimensions = []string{"Sale.amount"}
-	f := Filter{}
-	q.Filters = []Filter{f}
-	timeDimension := TimeDimension{}
+	//f := Filter{}
+	q.Filters = []Filter{}
+	timeDimension := TimeDimension{Dimension: "Sale.date", DateRange: []string{"2019-07-04", "2019-09-22"}, Granularity: "week"}
 	q.TimeDimensions = []TimeDimension{timeDimension}
 	q.Limit = 100
 	q.Offset = 0

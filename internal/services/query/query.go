@@ -5,6 +5,7 @@ import (
 	"dashboard/internal/services/block"
 	"dashboard/internal/services/sqlStages"
 	"fmt"
+	"log"
 	"strings"
 
 	"golang.org/x/exp/slices"
@@ -68,25 +69,25 @@ func (query *Query) GenerateSelectStage() []string {
 	return result
 }
 
-func (query *Query) GetStartAndTargetTables() (string, []string) {
+func (query *Query) GetStartAndTargetTables() (*block.BlockData, []string) {
 	if len(query.Measures) > 0 {
 		b := block.GetBlockFromName(block.GetBlockName(query.Measures[0]))
 		t := block.GetAllBlockNamesDifferent(b.Name, query.Dimensions)
-		return b.Name, t
+		return b, t
 	}
 	if len(query.Dimensions) > 0 {
 		b := block.GetBlockFromName(block.GetBlockName(query.Dimensions[0]))
 		t := block.GetAllBlockNamesDifferent(b.Name, query.Measures)
-		return b.Name, t
+		return b, t
 	}
-	return "", nil
+	return nil, nil
 }
 
 func (query *Query) GenerateLeftJoinStage(graph *block.JoinGraph) string {
 	startTableName, targetTableNames := query.GetStartAndTargetTables()
 
 	for _, targetTable := range targetTableNames {
-		if startVertex, found := graph.Vertices[startTableName]; found {
+		if startVertex, found := graph.Vertices[startTableName.Name]; found {
 			path, relationshipFound := graph.FindJoinPath(startVertex, targetTable)
 			if relationshipFound {
 				joins := query.GenerateJoinClause(path, graph)
@@ -118,7 +119,7 @@ func (query *Query) GenerateFromStage(graph *block.JoinGraph) string {
 
 	result.WriteString(" FROM ")
 	parentTable, _ := query.GetStartAndTargetTables()
-	result.WriteString(parentTable)
+	result.WriteString(fmt.Sprintf("%v as %v", parentTable.Table, parentTable.Name))
 	if HasTwoDifferentBlocks(query.Dimensions, query.Measures) {
 		result.WriteString(query.GenerateLeftJoinStage(graph))
 	}
@@ -130,9 +131,9 @@ func (query *Query) GenerateGroupByStage(totalSelect int) string {
 
 	result.WriteString(" GROUP BY ")
 	n := len(query.Measures) + 1
-	for i := 0; i < totalSelect; i++ {
-		result.WriteString(fmt.Sprintf("%d", i+n))
-		if i < len(query.Dimensions)-1 {
+	for i := n; i < totalSelect+n-1; i++ {
+		result.WriteString(fmt.Sprintf("%d", i))
+		if i < totalSelect+n-2 {
 			result.WriteRune(',')
 		}
 	}
@@ -160,11 +161,15 @@ func (query *Query) GenerateOffsetStage() string {
 	return fmt.Sprintf(" OFFSET %v", query.Offset)
 }
 
-func (query *Query) GenerateTimeDimensionStage(index int) (string, string) {
+func (query *Query) GenerateTimeDimensionStage(index int) (string, string, error) {
 	timeD := query.TimeDimensions[index]
+	if len(timeD.DateRange) < 2 {
+		return "", "", fmt.Errorf("not enough dates in daterange")
+	}
 	b := block.GetBlockFromName(block.GetBlockName(timeD.Dimension))
 	memberName := GetMemberName(timeD.Dimension)
-	return fmt.Sprintf("date_trunc('%v', (%v.%v :: timestamptz AT TIME ZONE 'UTC') %v_%v_%v)", timeD.Granularity, b.Table, memberName, b.Table, memberName, timeD.Granularity), fmt.Sprintf("(%v.%v >= '%v' :: timestamptz AND %v.%v <= '%v' :: timestamptz)", b.Table, memberName, timeD.DateRange[0], b.Table, memberName, timeD.DateRange[1])
+	dimension, _ := block.GetDimensionFromBlock(b, memberName)
+	return fmt.Sprintf("date_trunc('%v', (%v.%v :: timestamptz AT TIME ZONE 'UTC')) \"%v_%v_%v\"", timeD.Granularity, b.Name, dimension.Sql, b.Name, memberName, timeD.Granularity), fmt.Sprintf("(%v.%v >= '%v' :: timestamptz AND %v.%v <= '%v' :: timestamptz)", b.Name, dimension.Sql, timeD.DateRange[0], b.Name, dimension.Sql, timeD.DateRange[1]), nil
 }
 
 type FilterContext struct {
@@ -191,7 +196,6 @@ func (service *QueryService) ParseQuery() ([]map[string]interface{}, error) {
 	var whereStage []string
 
 	selectStage := service.Query.GenerateSelectStage()
-	sqlQuery.WriteString(service.Query.GenerateFromStage(service.JoinGraph))
 	//TODO: I believe this can be optimized seems repetitive
 	//This does not work because you can multiple filters
 	if len(service.Query.Filters) > 0 {
@@ -210,16 +214,21 @@ func (service *QueryService) ParseQuery() ([]map[string]interface{}, error) {
 		}
 	}
 	if len(service.Query.TimeDimensions) > 0 {
-		selectTimeD, whereTimeD := service.Query.GenerateTimeDimensionStage(0)
+		selectTimeD, whereTimeD, err := service.Query.GenerateTimeDimensionStage(0)
+		if err != nil {
+			return nil, err
+		}
 		selectStage = append(selectStage, selectTimeD)
 		whereStage = append(whereStage, whereTimeD)
 	}
 	sqlQuery.WriteString(service.BuildStage(selectStage, "SELECT ", ", "))
-	sqlQuery.WriteString(service.BuildStage(whereStage, "WHERE ", " AND "))
+	sqlQuery.WriteString(service.Query.GenerateFromStage(service.JoinGraph))
+	sqlQuery.WriteString(service.BuildStage(whereStage, " WHERE ", " AND "))
 	sqlQuery.WriteString(service.Query.GenerateGroupByStage(len(selectStage)))
 	sqlQuery.WriteString(service.Query.GenerateLimitStage())
 	sqlQuery.WriteString(service.Query.GenerateOffsetStage())
 	sqlResult, err := service.Db.ExecuteQuery(sqlQuery.String())
+	log.Println(sqlQuery.String())
 	if err != nil {
 		return nil, err
 	}
