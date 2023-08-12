@@ -27,6 +27,7 @@ func PostQuery(c *gin.Context) {
 	res, err := service.ParseQuery()
 	if err != nil {
 		c.JSON(500, "Internal error")
+		return
 	}
 	c.JSON(200, res)
 }

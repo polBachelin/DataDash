@@ -66,7 +66,7 @@ func (query *Query) GenerateSelectStage() string {
 
 	result.WriteString("SELECT ")
 	AddSelectToString(query.Measures, sqlStages.GenerateMeasureSelect, &result)
-	if len(query.Dimensions) > 0 {
+	if len(query.Dimensions) > 0 && len(query.Measures) > 0 {
 		result.WriteRune(',')
 	}
 	AddSelectToString(query.Dimensions, sqlStages.GenerateDimensionSelect, &result)
