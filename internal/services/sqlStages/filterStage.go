@@ -26,7 +26,7 @@ func FilterMathOperation(blockData *block.BlockData, member string, values []str
 		result.WriteString(sql)
 		result.WriteString(fmt.Sprintf("%s %v", operation, values[0]))
 	} else {
-		result.WriteString(fmt.Sprintf("%v.%v %s %v", blockData.Table, member, operation, values[0]))
+		result.WriteString(fmt.Sprintf("%v.%v %s %v", blockData.Name, member, operation, values[0]))
 	}
 	return result.String()
 }

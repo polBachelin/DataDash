@@ -129,13 +129,19 @@ func (query *Query) GenerateFromStage(graph *block.JoinGraph) string {
 func (query *Query) GenerateGroupByStage(totalSelect int) string {
 	var result strings.Builder
 
+	log.Println("TOTAL SELECT:", totalSelect)
 	result.WriteString(" GROUP BY ")
-	n := len(query.Measures) + 1
-	for i := n; i < totalSelect+n-1; i++ {
-		result.WriteString(fmt.Sprintf("%d", i))
-		if i < totalSelect+n-2 {
+	measureLen := len(query.Measures)
+	i := measureLen
+	if measureLen == 0 {
+		i = 1
+	}
+	for i <= totalSelect-measureLen {
+		result.WriteString(fmt.Sprintf("%d", i+measureLen))
+		if i <= totalSelect-measureLen-1 {
 			result.WriteRune(',')
 		}
+		i++
 	}
 	return result.String()
 }
@@ -208,7 +214,6 @@ func (service *QueryService) ParseQuery() ([]map[string]interface{}, error) {
 		for key, value := range filterMap {
 			if !value.isMember {
 				whereStage = append(whereStage, value.Sql)
-				sqlQuery.WriteString(value.Sql)
 				delete(filterMap, key)
 			}
 		}
