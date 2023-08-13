@@ -129,7 +129,6 @@ func (query *Query) GenerateFromStage(graph *block.JoinGraph) string {
 func (query *Query) GenerateGroupByStage(totalSelect int) string {
 	var result strings.Builder
 
-	log.Println("TOTAL SELECT:", totalSelect)
 	result.WriteString(" GROUP BY ")
 	measureLen := len(query.Measures)
 	i := measureLen
@@ -197,20 +196,33 @@ func (service *QueryService) BuildStage(stage []string, start string, seperator 
 	return result.String()
 }
 
+func (query *Query) GenerateFilterMap() map[string]FilterContext {
+	filterMap := make(map[string]FilterContext)
+	for _, filter := range query.Filters {
+		b := block.GetBlockFromName(block.GetBlockName(filter.Member))
+		f, isHaving, _ := sqlStages.GenerateFilter(b, filter.Values, GetMemberName(filter.Member), filter.Operator)
+		filterMap[filter.Member] = FilterContext{isMember: isHaving, Sql: f}
+	}
+	return filterMap
+}
+
+func (service *QueryService) FilterMapToArray(filtersMap map[string]FilterContext) []string {
+	var result []string
+
+	for _, value := range filtersMap {
+		result = append(result, value.Sql)
+	}
+	return result
+}
+
 func (service *QueryService) ParseQuery() ([]map[string]interface{}, error) {
 	var sqlQuery strings.Builder
 	var whereStage []string
 
 	selectStage := service.Query.GenerateSelectStage()
-	//TODO: I believe this can be optimized seems repetitive
-	//This does not work because you can multiple filters
+	filterMap := make(map[string]FilterContext)
 	if len(service.Query.Filters) > 0 {
-		filterMap := make(map[string]FilterContext)
-		for _, filter := range service.Query.Filters {
-			b := block.GetBlockFromName(block.GetBlockName(filter.Member))
-			f, isHaving, _ := sqlStages.GenerateFilter(b, filter.Values, GetMemberName(filter.Member), filter.Operator)
-			filterMap[filter.Member] = FilterContext{isMember: isHaving, Sql: f}
-		}
+		filterMap = service.Query.GenerateFilterMap()
 		for key, value := range filterMap {
 			if !value.isMember {
 				whereStage = append(whereStage, value.Sql)
@@ -230,6 +242,10 @@ func (service *QueryService) ParseQuery() ([]map[string]interface{}, error) {
 	sqlQuery.WriteString(service.Query.GenerateFromStage(service.JoinGraph))
 	sqlQuery.WriteString(service.BuildStage(whereStage, " WHERE ", " AND "))
 	sqlQuery.WriteString(service.Query.GenerateGroupByStage(len(selectStage)))
+	if len(service.Query.Filters) > 0 {
+		havingStage := service.FilterMapToArray(filterMap)
+		sqlQuery.WriteString(service.BuildStage(havingStage, " HAVING ", " AND "))
+	}
 	sqlQuery.WriteString(service.Query.GenerateLimitStage())
 	sqlQuery.WriteString(service.Query.GenerateOffsetStage())
 	sqlResult, err := service.Db.ExecuteQuery(sqlQuery.String())
