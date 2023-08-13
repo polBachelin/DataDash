@@ -96,7 +96,6 @@ func (graph *JoinGraph) DfsWithPath(currentVertex *Vertex, targetVertexName stri
 	}
 
 	for edgeName, edge := range currentVertex.Edges {
-		log.Printf("At edge %v", edgeName)
 		if !visited[edgeName] {
 			log.Printf("Edge has not been visted going further")
 			if path, found := graph.DfsWithPath(edge.Vertex, targetVertexName, visited); found {

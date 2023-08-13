@@ -23,14 +23,15 @@ func GenerateJoinClause(path []string, graph *block.JoinGraph) string {
 }
 
 func BuildLeftJoinSql(startTableBlock *block.BlockData, targetTableNames []string, graph *block.JoinGraph) string {
+	var joins strings.Builder
+
 	for _, targetTable := range targetTableNames {
 		if startVertex, found := graph.Vertices[startTableBlock.Name]; found {
 			path, relationshipFound := graph.FindJoinPath(startVertex, targetTable)
 			if relationshipFound {
-				joins := GenerateJoinClause(path, graph)
-				return joins
+				joins.WriteString(GenerateJoinClause(path, graph))
 			}
 		}
 	}
-	return ""
+	return joins.String()
 }
