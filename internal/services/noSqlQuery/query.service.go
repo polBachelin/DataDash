@@ -50,7 +50,7 @@ func ParseQuery(q query.Query) ([]bson.M, error) {
 	stages = append(stages, generateProjectStage(q.Dimensions, q.Measures))
 	stages = append(stages, generateOffsetStage(q.Offset))
 	stages = append(stages, generateLimitStage(q.Limit))
-	if len(q.Order.DimensionName) > 0 {
+	if len(q.Order) > 0 {
 		stages = append(stages, generateOrderStage(q.Order))
 	}
 	log.Println(stages)

@@ -30,7 +30,7 @@ func getQueryObject() Query {
 	q.TimeDimensions = []TimeDimension{timeDimension}
 	q.Limit = 100
 	q.Offset = 0
-	q.Order = Order{}
+	q.Order = [][]string{{"Sale.amount", "desc"}}
 	return q
 }
 
@@ -46,7 +46,10 @@ func TestSqlGeneration(t *testing.T) {
 		t.Fatalf("Could not connect to db")
 	}
 	t.Run("SqlGeneration", func(t *testing.T) {
-		json, _ := service.ParseQuery()
+		json, err := service.ParseQuery()
+		if err != nil {
+			t.Fatalf("Could not parse query: %v", err)
+		}
 		log.Println(json)
 	})
 }
