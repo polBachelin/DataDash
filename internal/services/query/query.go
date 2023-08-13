@@ -5,7 +5,6 @@ import (
 	"dashboard/internal/services/block"
 	"dashboard/internal/services/sqlStages"
 	"fmt"
-	"log"
 	"strings"
 
 	"golang.org/x/exp/slices"
@@ -86,32 +85,7 @@ func (query *Query) GetStartAndTargetTables() (*block.BlockData, []string) {
 func (query *Query) GenerateLeftJoinStage(graph *block.JoinGraph) string {
 	startTableName, targetTableNames := query.GetStartAndTargetTables()
 
-	for _, targetTable := range targetTableNames {
-		if startVertex, found := graph.Vertices[startTableName.Name]; found {
-			path, relationshipFound := graph.FindJoinPath(startVertex, targetTable)
-			if relationshipFound {
-				joins := query.GenerateJoinClause(path, graph)
-				return joins
-			}
-		}
-	}
-	return ""
-}
-
-func (query *Query) GenerateJoinClause(path []string, graph *block.JoinGraph) string {
-	var joins strings.Builder
-
-	for i := len(path) - 1; i >= 1; i-- {
-		fromVertex := graph.Vertices[path[i]]
-		toVertex := graph.Vertices[path[i-1]]
-
-		joinParent, err := block.GetBlockJoinFromName(toVertex.Val.Name, fromVertex.Val)
-		if err != nil {
-			joinParent, _ = block.GetBlockJoinFromName(fromVertex.Val.Name, toVertex.Val)
-		}
-		joins.WriteString(fmt.Sprintf(" LEFT JOIN %s as %s ON %s.%s = %s.%s", toVertex.Val.Table, toVertex.Val.Name, toVertex.Val.Name, joinParent.LocalField, fromVertex.Val.Name, joinParent.ForeignField))
-	}
-	return joins.String()
+	return sqlStages.BuildLeftJoinSql(startTableName, targetTableNames, graph)
 }
 
 func (query *Query) GenerateFromStage(graph *block.JoinGraph) string {
@@ -229,7 +203,6 @@ func (query *Query) GenerateOrderStage() ([]string, error) {
 		if i == -1 {
 			return nil, fmt.Errorf("order does not contain a member present in the query")
 		}
-		log.Println("ORDER: ", order)
 		if !strings.EqualFold(order[1], "asc") && !strings.EqualFold(order[1], "desc") {
 			return nil, fmt.Errorf("order is not asc or desc")
 		}
@@ -280,7 +253,6 @@ func (service *QueryService) ParseQuery() ([]map[string]interface{}, error) {
 	sqlQuery.WriteString(service.Query.GenerateLimitStage())
 	sqlQuery.WriteString(service.Query.GenerateOffsetStage())
 	sqlResult, err := service.Db.ExecuteQuery(sqlQuery.String())
-	log.Println("GENERATED SQL: ", sqlQuery.String())
 	if err != nil {
 		return nil, err
 	}
