@@ -5,6 +5,7 @@ import (
 	"dashboard/internal/services/block"
 	"dashboard/internal/services/sqlStages"
 	"fmt"
+	"log"
 	"strings"
 
 	"golang.org/x/exp/slices"
@@ -148,6 +149,10 @@ func (query *Query) GenerateTimeDimensionStage(index int) (string, string, error
 	b := block.GetBlockFromName(block.GetBlockName(timeD.Dimension))
 	memberName := GetMemberName(timeD.Dimension)
 	dimension, _ := block.GetDimensionFromBlock(b, memberName)
+	if dimension == nil {
+		return "", "", fmt.Errorf("dimension not found in block %v", b.Name)
+	}
+	log.Println(b, memberName, dimension)
 	return fmt.Sprintf("date_trunc('%v', (%v.%v :: timestamptz AT TIME ZONE 'UTC')) \"%v_%v_%v\"", timeD.Granularity, b.Name, dimension.Sql, b.Name, memberName, timeD.Granularity), fmt.Sprintf("(%v.%v >= '%v' :: timestamptz AND %v.%v <= '%v' :: timestamptz)", b.Name, dimension.Sql, timeD.DateRange[0], b.Name, dimension.Sql, timeD.DateRange[1]), nil
 }
 
