@@ -12,7 +12,7 @@ import (
 type QueryResponse struct {
 	Query       queryService.Query       `json:"query"`
 	Data        []map[string]interface{} `json:"data"`
-	Annotations queryService.Annotations `json:"annotations"`
+	Annotations queryService.Annotations `json:"annotation"`
 }
 
 func PostQuery(c *gin.Context) {

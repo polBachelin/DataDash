@@ -5,13 +5,14 @@ import (
 )
 
 type Annotations struct {
-	Measures   map[string]Annotation `json:"measures"`
-	Dimensions map[string]Annotation `json:"dimensions"`
+	Measures      map[string]Annotation `json:"measures"`
+	Dimensions    map[string]Annotation `json:"dimensions"`
+	TimeDimension map[string]Annotation `json:"timeDimensions"`
 }
 
 type Annotation struct {
 	Title      string `json:"title"`
-	ShortTitle string `json:"short_title"`
+	ShortTitle string `json:"shortTitle"`
 	Type       string `json:"type"`
 }
 
@@ -111,6 +112,7 @@ func (service *QueryService) CreateAnnotations() Annotations {
 	var res Annotations
 	measureMap := make(map[string]Annotation)
 	dimensionMap := make(map[string]Annotation)
+	timeDimensionMap := make(map[string]Annotation)
 
 	for _, measure := range service.Query.Measures {
 		measureMap[measure] = Annotation{Title: GetTitle(measure), ShortTitle: GetShortTitle(measure), Type: GetMeasureType(measure)}
@@ -118,7 +120,11 @@ func (service *QueryService) CreateAnnotations() Annotations {
 	for _, dim := range service.Query.Dimensions {
 		dimensionMap[dim] = Annotation{Title: GetTitle(dim), ShortTitle: GetShortTitle(dim), Type: GetDimensionType(dim)}
 	}
+	for _, timeD := range service.Query.TimeDimensions {
+		timeDimensionMap[timeD.Dimension] = Annotation{Title: GetTitle(timeD.Dimension), ShortTitle: GetShortTitle(timeD.Dimension), Type: "time"}
+	}
 	res.Measures = measureMap
 	res.Dimensions = dimensionMap
+	res.TimeDimension = timeDimensionMap
 	return res
 }
