@@ -9,6 +9,12 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+type QueryResponse struct {
+	Query       queryService.Query       `json:"query"`
+	Data        []map[string]interface{} `json:"data"`
+	Annotations queryService.Annotations `json:"annotations"`
+}
+
 func PostQuery(c *gin.Context) {
 	var query queryService.Query
 
@@ -24,10 +30,11 @@ func PostQuery(c *gin.Context) {
 	}
 	b := block.GetInstance().Blocks
 	service := queryService.NewQueryService(query, database.GetCurrentDatabase(), block.NewGraph(b))
-	res, err := service.ParseQuery()
+	data, err := service.ParseQuery()
 	if err != nil {
 		c.JSON(500, "Internal error")
 		return
 	}
-	c.JSON(200, res)
+	queryResponse := &QueryResponse{Query: query, Data: data, Annotations: service.CreateAnnotations()}
+	c.JSON(200, queryResponse)
 }

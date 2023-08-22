@@ -1,11 +1,19 @@
 package query
 
 import (
-	"fmt"
 	"strings"
-
-	"golang.org/x/exp/slices"
 )
+
+type Annotations struct {
+	Measures   map[string]Annotation `json:"measures"`
+	Dimensions map[string]Annotation `json:"dimensions"`
+}
+
+type Annotation struct {
+	Title      string `json:"title"`
+	ShortTitle string `json:"short_title"`
+	Type       string `json:"type"`
+}
 
 func (service *QueryService) BuildStage(stage []string, start string, seperator string) string {
 	var result strings.Builder
@@ -28,28 +36,6 @@ func (service *QueryService) FilterMapToArray(filtersMap map[string]FilterContex
 		result = append(result, value.Sql)
 	}
 	return result
-}
-
-func (query *Query) GenerateOrderStage() ([]string, error) {
-	var i int
-	var result []string
-
-	for _, order := range query.Order {
-		if len(order) < 2 {
-			return nil, fmt.Errorf("order needs to contain two values [memberName, order]")
-		}
-		if i = slices.Index(query.Measures, order[0]); i == -1 {
-			i = slices.Index(query.Dimensions, order[0]) + len(query.Measures)
-		}
-		if i == -1 {
-			return nil, fmt.Errorf("order does not contain a member present in the query")
-		}
-		if !strings.EqualFold(order[1], "asc") && !strings.EqualFold(order[1], "desc") {
-			return nil, fmt.Errorf("order is not asc or desc")
-		}
-		result = append(result, fmt.Sprintf("%v %v", i+1, strings.ToUpper(order[1])))
-	}
-	return result, nil
 }
 
 // TODO: need to cut this function it is too long
@@ -104,4 +90,35 @@ func (service *QueryService) ParseQuery() ([]map[string]interface{}, error) {
 		return nil, err
 	}
 	return resJson, nil
+}
+
+func GetTitle(memberName string) string {
+	var res strings.Builder
+
+	parts := strings.Split(memberName, ".")
+	res.WriteString(parts[0])
+	res.WriteRune(' ')
+	res.WriteString(strings.Title(parts[1]))
+	return res.String()
+}
+
+func GetShortTitle(memberName string) string {
+	m := GetMemberName(memberName)
+	return strings.Title(m)
+}
+
+func (service *QueryService) CreateAnnotations() Annotations {
+	var res Annotations
+	measureMap := make(map[string]Annotation)
+	dimensionMap := make(map[string]Annotation)
+
+	for _, measure := range service.Query.Measures {
+		measureMap[measure] = Annotation{Title: GetTitle(measure), ShortTitle: GetShortTitle(measure), Type: GetMeasureType(measure)}
+	}
+	for _, dim := range service.Query.Dimensions {
+		dimensionMap[dim] = Annotation{Title: GetTitle(dim), ShortTitle: GetShortTitle(dim), Type: GetDimensionType(dim)}
+	}
+	res.Measures = measureMap
+	res.Dimensions = dimensionMap
+	return res
 }

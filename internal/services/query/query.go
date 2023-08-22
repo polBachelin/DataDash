@@ -133,6 +133,28 @@ func (query *Query) FilterHasMeasure() (bool, error) {
 	return false, nil
 }
 
+func (query *Query) GenerateOrderStage() ([]string, error) {
+	var i int
+	var result []string
+
+	for _, order := range query.Order {
+		if len(order) < 2 {
+			return nil, fmt.Errorf("order needs to contain two values [memberName, order]")
+		}
+		if i = slices.Index(query.Measures, order[0]); i == -1 {
+			i = slices.Index(query.Dimensions, order[0]) + len(query.Measures)
+		}
+		if i == -1 {
+			return nil, fmt.Errorf("order does not contain a member present in the query")
+		}
+		if !strings.EqualFold(order[1], "asc") && !strings.EqualFold(order[1], "desc") {
+			return nil, fmt.Errorf("order is not asc or desc")
+		}
+		result = append(result, fmt.Sprintf("%v %v", i+1, strings.ToUpper(order[1])))
+	}
+	return result, nil
+}
+
 func (query *Query) GenerateLimitStage() string {
 	return fmt.Sprintf(" LIMIT %v", query.Limit)
 }

@@ -59,3 +59,25 @@ func ContainsDimension(dimensions []string, dimension string) bool {
 	}
 	return false
 }
+
+func GetMeasureType(measure string) string {
+	memberName := GetMemberName(measure)
+	b := block.GetBlockFromName(block.GetBlockName(measure))
+	for _, m := range b.Measures {
+		if m.Name == memberName {
+			return m.Type
+		}
+	}
+	return ""
+}
+
+func GetDimensionType(dimension string) string {
+	memberName := GetMemberName(dimension)
+	b := block.GetBlockFromName(block.GetBlockName(dimension))
+	for _, m := range b.Dimensions {
+		if m.Name == memberName {
+			return m.Type
+		}
+	}
+	return ""
+}
