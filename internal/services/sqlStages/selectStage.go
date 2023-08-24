@@ -12,7 +12,7 @@ var MeasureTypes = map[string]MeasureTypeFunc{
 }
 
 func MeasureCount(sql, tableName string) string {
-	return fmt.Sprintf("count(%v.%v)", tableName, sql)
+	return fmt.Sprintf("count(%v.%v) as \"%v.count\"", tableName, sql, tableName)
 }
 
 func GenerateMeasureSql(measure string, blockData *block.BlockData) string {
@@ -26,7 +26,7 @@ func GenerateMeasureSql(measure string, blockData *block.BlockData) string {
 func GenerateDimensionSelect(dimension string, blockData *block.BlockData) string {
 	for _, d := range blockData.Dimensions {
 		if d.Name == dimension {
-			return fmt.Sprintf("%v.%v", blockData.Name, d.Sql)
+			return fmt.Sprintf("%v.%v as \"%v.%v\"", blockData.Name, d.Sql, blockData.Name, d.Name)
 		}
 	}
 	return ""

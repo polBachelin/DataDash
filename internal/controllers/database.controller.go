@@ -21,7 +21,7 @@ func SetDatabase(c *gin.Context) {
 	postgres := database.GetPostgresDatabase()
 	res := postgres.ConnectDatabase(dbData)
 	if res != nil {
-		c.JSON(500, "Error connecting to database")
+		c.JSON(500, "Error connecting to database"+res.Error())
 		return
 	}
 	database.SetPostgresDatabase(postgres)

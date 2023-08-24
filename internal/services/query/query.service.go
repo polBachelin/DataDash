@@ -65,7 +65,9 @@ func (service *QueryService) ParseQuery() ([]map[string]interface{}, error) {
 	}
 	sqlQuery.WriteString(service.BuildStage(selectStage, "SELECT ", ", "))
 	sqlQuery.WriteString(service.Query.GenerateFromStage(service.JoinGraph))
-	sqlQuery.WriteString(service.BuildStage(whereStage, " WHERE ", " AND "))
+	if len(whereStage) > 1 {
+		sqlQuery.WriteString(service.BuildStage(whereStage, " WHERE ", " AND "))
+	}
 	if len(selectStage) > 1 {
 		sqlQuery.WriteString(service.Query.GenerateGroupByStage(len(selectStage)))
 	}
