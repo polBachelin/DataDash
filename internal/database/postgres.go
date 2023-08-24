@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"fmt"
 	"log"
+	"time"
 
 	_ "github.com/lib/pq"
 )
@@ -69,6 +70,7 @@ func (x *postgresDatabase) QueryResultToJson(rows interface{}) ([]map[string]int
 		rowData := make(map[string]interface{})
 		for i, colName := range columns {
 			val := *values[i].(*interface{})
+			log.Println("Value type : ", val)
 			switch v := val.(type) {
 			case nil:
 				rowData[colName] = nil
@@ -76,6 +78,10 @@ func (x *postgresDatabase) QueryResultToJson(rows interface{}) ([]map[string]int
 				rowData[colName] = v
 			case []byte:
 				rowData[colName] = string(v)
+			case time.Time:
+				log.Println("It's time")
+				formatted := v.Format("2006-01-02T15:04:05.999")
+				rowData[colName] = formatted
 			default:
 				rowData[colName] = val
 			}
