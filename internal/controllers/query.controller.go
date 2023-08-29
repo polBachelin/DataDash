@@ -32,7 +32,7 @@ func PostQuery(c *gin.Context) {
 	service := queryService.NewQueryService(query, database.GetCurrentDatabase(), block.NewGraph(b))
 	data, err := service.ParseQuery()
 	if err != nil {
-		c.JSON(500, "Internal error")
+		c.JSON(500, "Error parsing query: %v"+err.Error())
 		return
 	}
 	queryResponse := &QueryResponse{Query: query, Data: data, Annotations: service.CreateAnnotations()}
