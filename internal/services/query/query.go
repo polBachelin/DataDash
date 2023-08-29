@@ -52,21 +52,33 @@ func NewQueryService(q Query, db database.IDatabase, joinGraph *block.JoinGraph)
 	return &QueryService{Query: q, Db: db, JoinGraph: joinGraph}
 }
 
-func AddSelectToString(member string, genFunc func(string, *block.BlockData) string) string {
+func AddSelectToString(member string, genFunc func(string, *block.BlockData) string) (string, error) {
 	blockData := block.GetBlockFromName(block.GetBlockName(member))
-	return genFunc(GetMemberName(member), blockData)
+	if blockData == nil {
+		return "", fmt.Errorf("no block with name %v", block.GetBlockName(member))
+	}
+	return genFunc(GetMemberName(member), blockData), nil
 }
 
-func (query *Query) GenerateSelectStage() []string {
+func (query *Query) GenerateSelectStage() ([]string, error) {
 	var result []string
 
 	for _, measure := range query.Measures {
-		result = append(result, AddSelectToString(measure, sqlStages.GenerateMeasureSql))
+		selectString, err := AddSelectToString(measure, sqlStages.GenerateMeasureSql)
+		if err != nil {
+			return nil, err
+		}
+		result = append(result, selectString)
 	}
 	for _, dimension := range query.Dimensions {
-		result = append(result, AddSelectToString(dimension, sqlStages.GenerateDimensionSelect))
+		selectString, err := AddSelectToString(dimension, sqlStages.GenerateDimensionSelect)
+		if err != nil {
+			return nil, err
+		}
+		result = append(result, selectString)
+
 	}
-	return result
+	return result, nil
 }
 
 func (query *Query) GetStartAndTargetTables() (*block.BlockData, []string) {

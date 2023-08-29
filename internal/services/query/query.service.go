@@ -44,7 +44,10 @@ func (service *QueryService) ParseQuery() ([]map[string]interface{}, error) {
 	var sqlQuery strings.Builder
 	var whereStage []string
 
-	selectStage := service.Query.GenerateSelectStage()
+	selectStage, err := service.Query.GenerateSelectStage()
+	if err != nil {
+		return nil, err
+	}
 	filterMap := make(map[string]FilterContext)
 	if len(service.Query.Filters) > 0 {
 		filterMap = service.Query.GenerateFilterMap()
@@ -65,7 +68,9 @@ func (service *QueryService) ParseQuery() ([]map[string]interface{}, error) {
 	}
 	sqlQuery.WriteString(service.BuildStage(selectStage, "SELECT ", ", "))
 	sqlQuery.WriteString(service.Query.GenerateFromStage(service.JoinGraph))
-	sqlQuery.WriteString(service.BuildStage(whereStage, " WHERE ", " AND "))
+	if len(whereStage) > 1 {
+		sqlQuery.WriteString(service.BuildStage(whereStage, " WHERE ", " AND "))
+	}
 	if len(selectStage) > 1 {
 		sqlQuery.WriteString(service.Query.GenerateGroupByStage(len(selectStage)))
 	}
