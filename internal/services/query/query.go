@@ -15,7 +15,7 @@ type Query struct {
 	Measures       []string        `json:"measures"`
 	Dimensions     []string        `json:"dimensions"`
 	Filters        []Filter        `json:"filters"`
-	TimeDimensions []TimeDimension `json:"time_dimensions"`
+	TimeDimensions []TimeDimension `json:"timeDimensions"`
 	Limit          int             `json:"limit"`
 	Offset         int             `json:"offset"`
 	Order          [][]string      `json:"order"`
@@ -187,7 +187,7 @@ func (query *Query) GenerateTimeDimensionStage(index int) (string, string, error
 		return "", "", fmt.Errorf("dimension not found in block %v", b.Name)
 	}
 	log.Println(b, memberName, dimension)
-	return fmt.Sprintf("date_trunc('%v', (%v.%v :: timestamptz AT TIME ZONE 'UTC')) \"%v_%v_%v\"", timeD.Granularity, b.Name, dimension.Sql, b.Name, memberName, timeD.Granularity), fmt.Sprintf("(%v.%v >= '%v' :: timestamptz AND %v.%v <= '%v' :: timestamptz)", b.Name, dimension.Sql, timeD.DateRange[0], b.Name, dimension.Sql, timeD.DateRange[1]), nil
+	return fmt.Sprintf("date_trunc('%v', (%v.%v :: timestamptz AT TIME ZONE 'UTC')) \"%v.%v\"", timeD.Granularity, b.Name, dimension.Sql, b.Name, memberName), fmt.Sprintf("(%v.%v >= '%v' :: timestamptz AND %v.%v <= '%v' :: timestamptz)", b.Name, dimension.Sql, timeD.DateRange[0], b.Name, dimension.Sql, timeD.DateRange[1]), nil
 }
 
 type FilterContext struct {

@@ -14,7 +14,8 @@ type postgresDatabase struct {
 }
 
 func (x *postgresDatabase) BuildDatabaseUri(dbData DatabaseInfo) string {
-	return "postgres://" + dbData.DbUsername + ":" + dbData.DbPass + "@" + dbData.DbHost + ":" + dbData.DbPort + "/" + dbData.DbName + "?sslmode=disable"
+	return fmt.Sprintf("host=%s port=%s user=%s password=%s dbname=%s sslmode=disable",
+		dbData.DbHost, dbData.DbPort, dbData.DbUsername, dbData.DbPass, dbData.DbName)
 }
 
 func (x *postgresDatabase) ConnectDatabase(dbData DatabaseInfo) error {
@@ -24,6 +25,7 @@ func (x *postgresDatabase) ConnectDatabase(dbData DatabaseInfo) error {
 		log.Fatal("Error connecting to database: ", err)
 	}
 	err = db.Ping()
+	log.Println(err)
 	if err != nil {
 		return err
 	}
@@ -52,6 +54,7 @@ func (x *postgresDatabase) ExecuteQuery(query interface{}) (interface{}, error) 
 func (x *postgresDatabase) QueryResultToJson(rows interface{}) ([]map[string]interface{}, error) {
 	sqlRows := rows.(*sql.Rows)
 	columns, err := sqlRows.Columns()
+	dateFormat := "2006-01-02T15:04:05.999"
 	if err != nil {
 		log.Println("Error in retrieving columns: ", err)
 		return nil, err
@@ -80,7 +83,10 @@ func (x *postgresDatabase) QueryResultToJson(rows interface{}) ([]map[string]int
 				rowData[colName] = string(v)
 			case time.Time:
 				log.Println("It's time")
-				formatted := v.Format("2006-01-02T15:04:05.999")
+				formatted := v.Format(dateFormat)
+				if len(formatted) < len(dateFormat) {
+					formatted += ".000"
+				}
 				rowData[colName] = formatted
 			default:
 				rowData[colName] = val
