@@ -3,6 +3,7 @@ package sqlStages
 import (
 	"dashboard/internal/services/block"
 	"fmt"
+	"log"
 	"strings"
 
 	"golang.org/x/exp/slices"
@@ -26,7 +27,8 @@ func FilterMathOperation(blockData *block.BlockData, member string, values []str
 		result.WriteString(sql)
 		result.WriteString(fmt.Sprintf("%s %v", operation, values[0]))
 	} else {
-		result.WriteString(fmt.Sprintf("%v.%v %s %v", blockData.Name, member, operation, values[0]))
+		result.WriteString(fmt.Sprintf("%v.%v %s '%v'", blockData.Name, member, operation, values[0]))
+		log.Println(result.String())
 	}
 	return result.String()
 }
@@ -58,6 +60,7 @@ func GenerateFilter(memberBlock *block.BlockData, values []string, member, opera
 	if _, ok := FilterTypes[operator]; !ok {
 		return "", false, fmt.Errorf("this operator does not exist %s", operator)
 	}
+	log.Println(memberBlock)
 	if slices.ContainsFunc(memberBlock.Measures, func(data block.Measures) bool { return data.Name == member }) {
 		return FilterTypes[operator](memberBlock, member, values, true), true, nil //TODO: improvement could be made here, I don't like the fact of just puttin a boolean like that
 	}

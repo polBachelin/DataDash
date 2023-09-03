@@ -1,6 +1,7 @@
 package query
 
 import (
+	"log"
 	"strings"
 )
 
@@ -46,14 +47,19 @@ func (service *QueryService) ParseQuery() ([]map[string]interface{}, error) {
 
 	selectStage, err := service.Query.GenerateSelectStage()
 	if err != nil {
+		log.Println("Error in select stage: ", err)
 		return nil, err
 	}
 	filterMap := make(map[string]FilterContext)
 	if len(service.Query.Filters) > 0 {
-		filterMap = service.Query.GenerateFilterMap()
+		filterMap, err = service.Query.GenerateFilterMap()
+		if err != nil {
+			return nil, err
+		}
 		for key, value := range filterMap {
 			if !value.isMember {
 				whereStage = append(whereStage, value.Sql)
+				log.Println(whereStage)
 				delete(filterMap, key)
 			}
 		}
@@ -61,6 +67,7 @@ func (service *QueryService) ParseQuery() ([]map[string]interface{}, error) {
 	if len(service.Query.TimeDimensions) > 0 {
 		selectTimeD, whereTimeD, err := service.Query.GenerateTimeDimensionStage(0)
 		if err != nil {
+			log.Println("Error in time dimensions stage: ", err)
 			return nil, err
 		}
 		selectStage = append(selectStage, selectTimeD)
@@ -68,13 +75,15 @@ func (service *QueryService) ParseQuery() ([]map[string]interface{}, error) {
 	}
 	sqlQuery.WriteString(service.BuildStage(selectStage, "SELECT ", ", "))
 	sqlQuery.WriteString(service.Query.GenerateFromStage(service.JoinGraph))
-	if len(whereStage) > 1 {
+	if len(whereStage) >= 1 {
 		sqlQuery.WriteString(service.BuildStage(whereStage, " WHERE ", " AND "))
 	}
-	if len(selectStage) > 1 {
+	if len(selectStage) >= 1 {
 		sqlQuery.WriteString(service.Query.GenerateGroupByStage(len(selectStage)))
 	}
+	//TODO: bug here with filters having should only appear if filter is applied to a measure
 	if len(service.Query.Filters) > 1 {
+		log.Println(service.Query.Filters)
 		havingStage := service.FilterMapToArray(filterMap)
 		sqlQuery.WriteString(service.BuildStage(havingStage, " HAVING ", " AND "))
 	}
@@ -87,6 +96,7 @@ func (service *QueryService) ParseQuery() ([]map[string]interface{}, error) {
 	}
 	sqlQuery.WriteString(service.Query.GenerateLimitStage())
 	sqlQuery.WriteString(service.Query.GenerateOffsetStage())
+	log.Println(sqlQuery)
 	sqlResult, err := service.Db.ExecuteQuery(sqlQuery.String())
 	if err != nil {
 		return nil, err

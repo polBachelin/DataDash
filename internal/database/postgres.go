@@ -73,7 +73,6 @@ func (x *postgresDatabase) QueryResultToJson(rows interface{}) ([]map[string]int
 		rowData := make(map[string]interface{})
 		for i, colName := range columns {
 			val := *values[i].(*interface{})
-			log.Println("Value type : ", val)
 			switch v := val.(type) {
 			case nil:
 				rowData[colName] = nil
@@ -82,7 +81,6 @@ func (x *postgresDatabase) QueryResultToJson(rows interface{}) ([]map[string]int
 			case []byte:
 				rowData[colName] = string(v)
 			case time.Time:
-				log.Println("It's time")
 				formatted := v.Format(dateFormat)
 				if len(formatted) < len(dateFormat) {
 					formatted += ".000"

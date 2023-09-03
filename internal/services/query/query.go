@@ -29,7 +29,7 @@ type Filter struct {
 
 type TimeDimension struct {
 	Dimension   string   `json:"dimension"`
-	DateRange   []string `json:"date_range"`
+	DateRange   []string `json:"dateRange"`
 	Granularity string   `json:"granularity"`
 }
 
@@ -177,8 +177,12 @@ func (query *Query) GenerateOffsetStage() string {
 
 func (query *Query) GenerateTimeDimensionStage(index int) (string, string, error) {
 	timeD := query.TimeDimensions[index]
+	log.Println(timeD.DateRange)
 	if len(timeD.DateRange) < 2 {
 		return "", "", fmt.Errorf("not enough dates in daterange")
+	}
+	if timeD.Dimension == "" {
+		return "", "", fmt.Errorf("no dimension in the timeDimension")
 	}
 	b := block.GetBlockFromName(block.GetBlockName(timeD.Dimension))
 	memberName := GetMemberName(timeD.Dimension)
@@ -195,12 +199,15 @@ type FilterContext struct {
 	Sql      string
 }
 
-func (query *Query) GenerateFilterMap() map[string]FilterContext {
+func (query *Query) GenerateFilterMap() (map[string]FilterContext, error) {
 	filterMap := make(map[string]FilterContext)
 	for _, filter := range query.Filters {
 		b := block.GetBlockFromName(block.GetBlockName(filter.Member))
-		f, isHaving, _ := sqlStages.GenerateFilter(b, filter.Values, GetMemberName(filter.Member), filter.Operator)
+		f, isHaving, err := sqlStages.GenerateFilter(b, filter.Values, GetMemberName(filter.Member), filter.Operator)
+		if err != nil {
+			return nil, err
+		}
 		filterMap[filter.Member] = FilterContext{isMember: isHaving, Sql: f}
 	}
-	return filterMap
+	return filterMap, nil
 }
