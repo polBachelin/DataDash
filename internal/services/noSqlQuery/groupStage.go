@@ -1,9 +1,9 @@
 package noSqlQuery
 
 import (
+	"dashboard/internal/services/block"
 	blockService "dashboard/internal/services/block"
 	"dashboard/internal/services/query"
-	"log"
 
 	"go.mongodb.org/mongo-driver/bson"
 	"golang.org/x/exp/slices"
@@ -22,10 +22,8 @@ func MeasureCount() bson.M {
 func BuildGroupStage(block blockService.BlockData, joinChildIndex int, blockQuery BlockQuery) bson.M {
 	ids := make(bson.M)
 
-	log.Println(block.Dimensions)
 	for _, dimension := range blockQuery.Dimensions {
 		dimensionIndex := slices.IndexFunc(block.Dimensions, func(data blockService.Dimensions) bool { return data.Name == dimension })
-		log.Println("Dimension : " + dimension)
 		if dimensionIndex != -1 {
 			ids[dimension] = "$" + block.Dimensions[dimensionIndex].Sql
 		} else {
@@ -45,7 +43,7 @@ func GenerateGroupStage(dimensions, measures []string, join *blockService.Join) 
 	groupStage := bson.M{}
 	for _, dimension := range dimensions {
 		memberName := query.GetMemberName(dimension)
-		blockName := query.GetBlockName(dimension)
+		blockName := block.GetBlockName(dimension)
 		if join != nil && blockName == join.Name {
 			groupStage[memberName] = "$" + join.Name + "." + memberName
 		} else {

@@ -2,6 +2,8 @@ package block
 
 import (
 	"errors"
+	"fmt"
+	"strings"
 
 	"golang.org/x/exp/slices"
 )
@@ -15,7 +17,7 @@ type FileData struct {
 type BlockData struct {
 	Name       string       `yaml:"name"`
 	Table      string       `yaml:"table"`
-	Joins      []Join       `yaml:"joins"`
+	Joins      []Join       `yaml:"joins,omitempty"`
 	Measures   []Measures   `yaml:"measures"`
 	Dimensions []Dimensions `yaml:"dimensions"`
 }
@@ -55,10 +57,60 @@ func GetBlockFromName(name string) *BlockData {
 	return nil
 }
 
-func GetBlockJoinFromName(name string, block BlockData) (Join, error) {
+func GetBlockJoinFromName(name string, block *BlockData) (Join, error) {
 	join := slices.IndexFunc(block.Joins, func(data Join) bool { return data.Name == name })
 	if join != -1 {
 		return block.Joins[join], nil
 	}
 	return Join{}, errors.New("No join found for name: " + name)
+}
+
+func GetAllBlockNamesDifferent(compare string, members []string) []string {
+	var res []string
+
+	for _, member := range members {
+		blockName := GetBlockName(member)
+		if blockName != compare {
+			b := GetBlockFromName(blockName)
+			res = append(res, b.Name)
+		}
+	}
+	return res
+}
+
+func GetBlockName(dimension string) string {
+	parts := strings.Split(dimension, ".")
+	return parts[0]
+}
+
+func GetBlockThatHasJoin(name string) *BlockData {
+	blockInstance := GetInstance().Blocks
+
+	for _, fileData := range blockInstance {
+		for _, block := range fileData.Blocks {
+			for _, blockJoin := range block.Joins {
+				if blockJoin.Name == name {
+					return &block
+				}
+			}
+		}
+	}
+	return nil
+}
+
+func GetMeasureFromBlock(blockData *BlockData, measure string) (*Measures, error) {
+	measureIndex := slices.IndexFunc(blockData.Measures, func(m Measures) bool { return m.Name == measure })
+	if measureIndex == -1 {
+		return nil, fmt.Errorf("no measure found for block %s", blockData.Name)
+	}
+	return &blockData.Measures[measureIndex], nil
+}
+
+func GetDimensionFromBlock(blockData *BlockData, dimension string) (*Dimensions, error) {
+	measureIndex := slices.IndexFunc(blockData.Dimensions, func(m Dimensions) bool { return m.Name == dimension })
+	if measureIndex == -1 {
+		return nil, fmt.Errorf("no measure found for block %s", blockData.Name)
+	}
+	return &blockData.Dimensions[measureIndex], nil
+
 }

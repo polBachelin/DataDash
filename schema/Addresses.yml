@@ -1,0 +1,37 @@
+blocks:
+  - name: Addresses
+    table: addresses
+    joins:
+      - name: Partners
+        local_field: partner_id
+        foreign_field: id
+        relationship: one_to_one
+    measures:
+      - name: count
+        sql: id
+        type: count
+    dimensions:
+      - name: street1
+        sql: street1
+        type: string
+      - name: street2
+        sql: street2
+        type: string
+      - name: complement
+        sql: complement
+        type: string
+      - name: zip_code
+        sql: zip_code
+        type: string
+      - name: city
+        sql: city
+        type: string
+      - name: state
+        sql: state
+        type: string
+      - name: country
+        sql: country
+        type: string
+      - name: type
+        sql: address_type
+        type: number

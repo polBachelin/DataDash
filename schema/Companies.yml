@@ -1,0 +1,11 @@
+blocks:
+  - name: Companies
+    table: companies
+    measures:
+      - name: count
+        sql: id
+        type: count
+    dimensions:
+      - name: name
+        sql: name
+        type: string

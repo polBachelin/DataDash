@@ -1,0 +1,31 @@
+blocks:
+  - name: Partners
+    table: partners
+    joins:
+      - name: Companies
+        local_field: company_id
+        foreign_field: id
+        relationship: one_to_one
+    measures:
+      - name: count
+        sql: id
+        type: count
+    dimensions:
+      - name: name
+        sql: name
+        type: string
+      - name: client
+        sql: is_client
+        type: boolean
+      - name: supplier
+        sql: is_supplier
+        type: boolean
+      - name: siret
+        sql: siret
+        type: string
+      - name: vat
+        sql: vat_number
+        type: string
+      - name: active
+        sql: is_active
+        type: boolean

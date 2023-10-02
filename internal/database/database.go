@@ -11,7 +11,8 @@ type DatabaseInfo struct {
 type IDatabase interface {
 	BuildDatabaseUri(DatabaseInfo) string
 	ConnectDatabase(DatabaseInfo) error
-	ExecuteQuery(query interface{}) (interface{}, error)
+	ExecuteQuery(interface{}) (interface{}, error)
+	QueryResultToJson(interface{}) ([]map[string]interface{}, error)
 }
 
 var mongoDb = &mongoDatabase{db: nil}

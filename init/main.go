@@ -1,7 +1,10 @@
 package main
 
 import (
+	"dashboard/internal/controllers"
 	"dashboard/internal/routes"
+	"dashboard/pkg/utils"
+	"log"
 
 	"github.com/gin-gonic/gin"
 )
@@ -23,6 +26,10 @@ func CORS() gin.HandlerFunc {
 func main() {
 	r := gin.Default()
 	r.Use(CORS())
+	err := controllers.SetDatabaseFromEnv()
+	if err != nil {
+		log.Fatal(err)
+	}
 	routes.Setup(r)
-	r.Run()
+	r.Run(":" + utils.GetEnvVar("API_PORT", "8080"))
 }

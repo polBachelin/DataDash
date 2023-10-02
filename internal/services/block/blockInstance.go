@@ -28,11 +28,7 @@ func GetInstance() *single {
 				singleInstance = &single{}
 				singleInstance.Blocks = data
 			}
-		} else {
-			log.Println("Single instance already created.")
 		}
-	} else {
-		log.Println("Single instance already created.")
 	}
 	return singleInstance
 }

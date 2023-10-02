@@ -7,8 +7,15 @@ import (
 )
 
 func TestSelectStage(t *testing.T) {
-	selectStage := GenerateMeasureSelect("count", block.GetBlockFromName("Sale"))
-	if !strings.Contains(selectStage, "count(Sale.sale_id)") {
+	selectStage, _ := GenerateMeasureSql("count", block.GetBlockFromName("BusinessUnits"))
+	if !strings.Contains(selectStage, "count(BusinessUnits.id)") {
+		t.Fatalf("Select stage is wrong : %v", selectStage)
+	}
+}
+
+func TestSelectStageNumber(t *testing.T) {
+	selectStage, _ := GenerateMeasureSql("revenue", block.GetBlockFromName("Projects"))
+	if !strings.Contains(selectStage, "sum(amount_sold - allocated_budget)") {
 		t.Fatalf("Select stage is wrong : %v", selectStage)
 	}
 }

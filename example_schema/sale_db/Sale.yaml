@@ -23,5 +23,5 @@ blocks:
         sql: amount
         type: number
       - name: date
-        sql: date
+        sql: date_sale
         type: time

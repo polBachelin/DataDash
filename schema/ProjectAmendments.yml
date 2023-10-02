@@ -1,0 +1,41 @@
+blocks:
+  - name: ProjectAmendments
+    table: projects_amendments
+    joins:
+      - name: Accounts
+        local_field: manager_id
+        foreign_field: manager_id
+        relationship: one_to_one
+      - name: Projects
+        local_field: project_id
+        foreign_field: id
+        relationship: one_to_one
+    measures:
+      - name: count
+        sql: id
+        type: count
+    dimensions:
+      - name: sold
+        sql: amount_sold
+        type: number
+      - name: budget
+        sql: allocated_budget
+        type: number
+      - name: expenses_budget
+        sql: expenses_budget
+        type: number
+      - name: projected_start_date
+        sql: projected_start_date
+        type: time
+      - name: projected_end_date
+        sql: projected_end_date
+        type: time
+      - name: real_start_date
+        sql: real_start_date
+        type: time
+      - name: real_end_date
+        sql: real_end_date
+        type: time
+      - name: active
+        sql: is_active
+        type: boolean

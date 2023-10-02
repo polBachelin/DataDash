@@ -23,14 +23,14 @@ func connectDb() bool {
 func getQueryObject() Query {
 	q := Query{}
 	q.Measures = []string{"Sale.count"}
-	q.Dimensions = []string{"Status_name.name"}
-	f := Filter{}
+	q.Dimensions = []string{"Status_name.name", "Country.name"}
+	f := Filter{Member: "Sale.amount", Operator: "gt", Values: []string{"9000"}}
 	q.Filters = []Filter{f}
-	timeDimension := TimeDimension{}
+	timeDimension := TimeDimension{Dimension: "Sale.date", DateRange: []string{"2019-07-04", "2019-09-22"}, Granularity: "week"}
 	q.TimeDimensions = []TimeDimension{timeDimension}
 	q.Limit = 100
 	q.Offset = 0
-	q.Order = Order{}
+	q.Order = [][]string{{"Sale.amount", "desc"}}
 	return q
 }
 
@@ -46,6 +46,10 @@ func TestSqlGeneration(t *testing.T) {
 		t.Fatalf("Could not connect to db")
 	}
 	t.Run("SqlGeneration", func(t *testing.T) {
-		service.ParseQuery()
+		json, err := service.ParseQuery()
+		if err != nil {
+			t.Fatalf("Could not parse query: %v", err)
+		}
+		log.Println(json)
 	})
 }

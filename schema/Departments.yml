@@ -1,0 +1,33 @@
+blocks:
+  - name: Departments
+    table: departments
+    joins:
+      - name: BusinessUnits
+        local_field: business_unit_id
+        foreign_field: id
+        relationship: many_to_one
+      - name: Accounts
+        local_field: manager_id
+        foreign_field: manager_id
+        relationship: one_to_one
+    measures:
+      - name: count
+        sql: id
+        type: count
+      - name: all_projects
+        sql: (SELECT count(*) from projects) as "Departments.all_projects"
+        type: number
+    dimensions:
+      - name: name
+        sql: name
+        type: string
+      - name: budget
+        sql: budget
+        type: number
+      - name: expenses_budget
+        sql: expenses_budget
+        type: number
+      - name: business_unit_id
+        sql: business_unit_id
+        type: number
+        primary_key: true

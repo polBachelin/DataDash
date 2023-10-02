@@ -29,7 +29,7 @@ func getQueryObject() query.Query {
 	q.TimeDimensions = []query.TimeDimension{timeDimension}
 	q.Limit = 100
 	q.Offset = 0
-	q.Order = query.Order{DimensionName: []string{"Stories.time"}, DimensionOrder: []string{"asc"}, MeasureName: []string{"Stories.count"}, MeasureOrder: []string{"desc"}}
+	q.Order = [][]string{}
 	return q
 }
 

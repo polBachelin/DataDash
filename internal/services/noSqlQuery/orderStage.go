@@ -6,13 +6,10 @@ import (
 	"go.mongodb.org/mongo-driver/bson"
 )
 
-func generateOrderStage(order query.Order) bson.M {
+func generateOrderStage(order [][]string) bson.M {
 	sort := bson.M{}
-	for i, dimension := range order.DimensionName {
-		sort[dimension] = getOrderType(query.GetMemberName(order.DimensionOrder[i]))
-	}
-	for i, measure := range order.MeasureName {
-		sort[measure] = getOrderType(query.GetMemberName(order.MeasureOrder[i]))
+	for _, member := range order {
+		sort[query.GetMemberName(member[0])] = getOrderType(member[1])
 	}
 	return bson.M{"$sort": sort}
 }
