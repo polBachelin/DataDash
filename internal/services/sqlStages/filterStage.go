@@ -8,8 +8,7 @@ import (
 	"golang.org/x/exp/slices"
 )
 
-<<<<<<< HEAD
-type FilterTypeFunc func(blockData *block.BlockData, member string, values []string, measure bool) string
+type FilterTypeFunc func(blockData *block.BlockData, member string, values []string, measure bool) (string, error)
 
 var FilterTypes = map[string]FilterTypeFunc{
 	"gt":         FilterGreater,
@@ -28,7 +27,6 @@ func FilterMathOperation(blockData *block.BlockData, member string, values []str
 		if err != nil {
 			return "", fmt.Errorf("Could not generate measure sql: %v", err)
 		}
->>>>>>> dev
 		result.WriteString(sql)
 		result.WriteString(fmt.Sprintf("%s %v", operation, values[0]))
 	} else {

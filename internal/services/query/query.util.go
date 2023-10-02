@@ -81,8 +81,6 @@ func GetDimensionType(dimension string) string {
 	}
 	return ""
 }
-<<<<<<< HEAD
-=======
 
 func StringIsAggregateFunction(sql string) bool {
 	functions := []string{"count", "sum", "min", "max", "avg"}
@@ -117,4 +115,3 @@ func MeasureIsAggregated(m *block.Measures) bool {
 	}
 	return false
 }
->>>>>>> dev

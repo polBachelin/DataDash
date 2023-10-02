@@ -1,7 +1,6 @@
 # Dashboard Service
 
 This service acts as a data access layer translating API requests into MongoDB pipelines. It manages caching, queuing and database connection. Based on the data model and incoming query the service generates the appropriate MongoDB aggregation pipeline. It queries the database and then sends the result back to the client.
-<<<<<<< HEAD
 This tool's idea and documentation is heavily inspired from https://cube.dev/. However, the whole source code has been written from scratch by me in golang.
 
 # Block definition
@@ -71,21 +70,8 @@ A Query has the following properties:
 - `lte`: The less than or equal operator
 - `set`: This operator checks if the value is not null
 - `notSet`: This operator checks if the value is null
-=======
 
-Afin que le service fonctionne correctement il faut specifier certaines variables d’environment
-
-```json
-SCHEMA_PATH : Le chemin vers la dossier qui contient les schemas en fichier YAML
-DB_HOST : Le host de la base de données auquel le service se connectera
-DB_PORT : Le port de la base de données auquel le service se connectera
-DB_USERNAME : Le nom d'utilisateur de la base de données auquel le service se connectera
-DB_PASS : Le mot de passe de la base de données auquel le service se connectera
-DB_NAME : Le nom de la de la base de données auquel le service se connectera
-API_PORT : Le port de l'api valeur par defaut : 8080
-```
-
-****\*\*****\*\*\*\*****\*\*****\*\*\*\*****\*\*****\*\*\*\*****\*\*****Connecter à une base de données****\*\*****\*\*\*\*****\*\*****\*\*\*\*****\*\*****\*\*\*\*****\*\*****
+**Connect a database**
 
 Endpoint: `POST /connect`
 
@@ -101,19 +87,19 @@ Response:
 
 - `status`: 200 for success
 
-**Envoyer une query pour récuperer de la données**
+**Data query**
 
 Endpoint: `POST /query`
 
 Body: JSON
 
-- `measures` Tableau de [measures](https://www.notion.so/Dashboard-Service-5a5b1a5b477e4ea5911b96bc23d07e9f?pvs=21)
-- `dimension` Tableau de [dimensions](https://www.notion.so/Dashboard-Service-5a5b1a5b477e4ea5911b96bc23d07e9f?pvs=21)
-- `filters` Tableau de [filtres](https://www.notion.so/Dashboard-Service-5a5b1a5b477e4ea5911b96bc23d07e9f?pvs=21)
-- `timeDimensions` Tableau de [timeDimensions](https://www.notion.so/Dashboard-Service-5a5b1a5b477e4ea5911b96bc23d07e9f?pvs=21)
-- `limit` Limite le nombre de réponses
-- `offset` Point de départ au sein de la données à partir duquel les resultats sont récupérés. Par défaut à `0`
-- `order` Un objet, où les clés sont des mesures ou des dimensions par lesquelles trier et leurs valeurs correspondantes sont soit `asc` (croissant) soit `desc` (décroissant). L'ordre des champs à trier est basé sur l'ordre des clés dans l'objet.
+- `measures` Array of measures
+- `dimension` Array of dimensions
+- `filters` Array of filters
+- `timeDimensions` Array of time dimensions
+- `limit` Limits the number of data in response
+- `offset` Offset for the data to start at - by default is 0
+- `order` An object to order the values of the data returned, can be `asc` (ascending) or `desc` (descending). The order of the fields to order is based on the order of the keys in the object
 -
 
 ## Measures
@@ -233,4 +219,3 @@ Since grouping and filtering by a time dimension is quite a common case,
   }
 }
 ```
->>>>>>> dev
