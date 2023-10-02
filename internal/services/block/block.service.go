@@ -17,7 +17,7 @@ type FileData struct {
 type BlockData struct {
 	Name       string       `yaml:"name"`
 	Table      string       `yaml:"table"`
-	Joins      []Join       `yaml:"joins"`
+	Joins      []Join       `yaml:"joins,omitempty"`
 	Measures   []Measures   `yaml:"measures"`
 	Dimensions []Dimensions `yaml:"dimensions"`
 }

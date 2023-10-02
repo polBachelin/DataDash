@@ -54,7 +54,6 @@ func (x *postgresDatabase) ExecuteQuery(query interface{}) (interface{}, error) 
 func (x *postgresDatabase) QueryResultToJson(rows interface{}) ([]map[string]interface{}, error) {
 	sqlRows := rows.(*sql.Rows)
 	columns, err := sqlRows.Columns()
-	dateFormat := "2006-01-02T15:04:05.999"
 	if err != nil {
 		log.Println("Error in retrieving columns: ", err)
 		return nil, err
@@ -75,16 +74,13 @@ func (x *postgresDatabase) QueryResultToJson(rows interface{}) ([]map[string]int
 			val := *values[i].(*interface{})
 			switch v := val.(type) {
 			case nil:
-				rowData[colName] = nil
+				rowData[colName] = 0
 			case int64, int32, int16, int8, float64, float32:
 				rowData[colName] = v
 			case []byte:
 				rowData[colName] = string(v)
 			case time.Time:
-				formatted := v.Format(dateFormat)
-				if len(formatted) < len(dateFormat) {
-					formatted += ".000"
-				}
+				formatted := v.Format("2006-01-02T15:04:05.999")
 				rowData[colName] = formatted
 			default:
 				rowData[colName] = val

@@ -1,0 +1,40 @@
+blocks:
+  - name: Contacts
+    table: contacts
+    joins:
+      - name: Partners
+        local_field: partner_id
+        foreign_field: id
+        relationship: one_to_one
+    measures:
+      - name: count
+        sql: id
+        type: count
+    dimensions:
+      - name: first_name
+        sql: first_name
+        type: string
+      - name: last_name
+        sql: last_name
+        type: string
+      - name: title
+        sql: job_title
+        type: string
+      - name: department
+        sql: department
+        type: string
+      - name: email
+        sql: email
+        type: string
+      - name: country
+        sql: country_prefix
+        type: string
+      - name: phone
+        sql: phone
+        type: string
+      - name: mobile
+        sql: mobile
+        type: string
+      - name: type
+        sql: contact_type
+        type: number

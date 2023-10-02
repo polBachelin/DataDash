@@ -81,3 +81,40 @@ func GetDimensionType(dimension string) string {
 	}
 	return ""
 }
+<<<<<<< HEAD
+=======
+
+func StringIsAggregateFunction(sql string) bool {
+	functions := []string{"count", "sum", "min", "max", "avg"}
+
+	sql = strings.ToLower(sql)
+	for _, f := range functions {
+		if strings.HasPrefix(sql, f) {
+			return true
+		}
+	}
+	return false
+}
+
+func GetTitle(memberName string) string {
+	var res strings.Builder
+
+	parts := strings.Split(memberName, ".")
+	res.WriteString(parts[0])
+	res.WriteRune(' ')
+	res.WriteString(strings.Title(parts[1]))
+	return res.String()
+}
+
+func GetShortTitle(memberName string) string {
+	m := GetMemberName(memberName)
+	return strings.Title(m)
+}
+
+func MeasureIsAggregated(m *block.Measures) bool {
+	if m.Type == "count" || m.Type == "sum" || StringIsAggregateFunction(m.Sql) {
+		return true
+	}
+	return false
+}
+>>>>>>> dev

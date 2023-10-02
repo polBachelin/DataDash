@@ -1,7 +1,6 @@
 package query
 
 import (
-	"log"
 	"strings"
 )
 
@@ -47,7 +46,6 @@ func (service *QueryService) ParseQuery() ([]map[string]interface{}, error) {
 
 	selectStage, err := service.Query.GenerateSelectStage()
 	if err != nil {
-		log.Println("Error in select stage: ", err)
 		return nil, err
 	}
 	filterMap := make(map[string]FilterContext)
@@ -59,7 +57,6 @@ func (service *QueryService) ParseQuery() ([]map[string]interface{}, error) {
 		for key, value := range filterMap {
 			if !value.isMember {
 				whereStage = append(whereStage, value.Sql)
-				log.Println(whereStage)
 				delete(filterMap, key)
 			}
 		}
@@ -67,7 +64,6 @@ func (service *QueryService) ParseQuery() ([]map[string]interface{}, error) {
 	if len(service.Query.TimeDimensions) > 0 {
 		selectTimeD, whereTimeD, err := service.Query.GenerateTimeDimensionStage(0)
 		if err != nil {
-			log.Println("Error in time dimensions stage: ", err)
 			return nil, err
 		}
 		selectStage = append(selectStage, selectTimeD)
@@ -78,12 +74,10 @@ func (service *QueryService) ParseQuery() ([]map[string]interface{}, error) {
 	if len(whereStage) >= 1 {
 		sqlQuery.WriteString(service.BuildStage(whereStage, " WHERE ", " AND "))
 	}
-	if len(selectStage) >= 1 {
+	if len(selectStage) > 1 {
 		sqlQuery.WriteString(service.Query.GenerateGroupByStage(len(selectStage)))
 	}
-	//TODO: bug here with filters having should only appear if filter is applied to a measure
-	if len(service.Query.Filters) > 1 {
-		log.Println(service.Query.Filters)
+	if service.Query.FilterHasAggregated() {
 		havingStage := service.FilterMapToArray(filterMap)
 		sqlQuery.WriteString(service.BuildStage(havingStage, " HAVING ", " AND "))
 	}
@@ -96,7 +90,6 @@ func (service *QueryService) ParseQuery() ([]map[string]interface{}, error) {
 	}
 	sqlQuery.WriteString(service.Query.GenerateLimitStage())
 	sqlQuery.WriteString(service.Query.GenerateOffsetStage())
-	log.Println(sqlQuery)
 	sqlResult, err := service.Db.ExecuteQuery(sqlQuery.String())
 	if err != nil {
 		return nil, err
@@ -106,21 +99,6 @@ func (service *QueryService) ParseQuery() ([]map[string]interface{}, error) {
 		return nil, err
 	}
 	return resJson, nil
-}
-
-func GetTitle(memberName string) string {
-	var res strings.Builder
-
-	parts := strings.Split(memberName, ".")
-	res.WriteString(parts[0])
-	res.WriteRune(' ')
-	res.WriteString(strings.Title(parts[1]))
-	return res.String()
-}
-
-func GetShortTitle(memberName string) string {
-	m := GetMemberName(memberName)
-	return strings.Title(m)
 }
 
 func (service *QueryService) CreateAnnotations() Annotations {

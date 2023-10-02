@@ -1,0 +1,29 @@
+blocks:
+  - name: BusinessUnits
+    table: business_units
+    joins:
+      - name: Companies
+        local_field: company_id
+        foreign_field: id
+        relationship: one_to_one
+      - name: Accounts
+        local_field: manager_id
+        foreign_field: manager_id
+        relationship: one_to_one
+    measures:
+      - name: count
+        sql: id
+        type: count
+      - name: budget
+        sql: BusinessUnits.budget as "BusinessUnits.budget"
+        type: number
+    dimensions:
+      - name: name
+        sql: name
+        type: string
+      - name: budget
+        sql: budget
+        type: number
+      - name: expenses_budget
+        sql: expenses_budget
+        type: number

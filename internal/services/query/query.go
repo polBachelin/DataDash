@@ -5,7 +5,6 @@ import (
 	"dashboard/internal/services/block"
 	"dashboard/internal/services/sqlStages"
 	"fmt"
-	"log"
 	"strings"
 
 	"golang.org/x/exp/slices"
@@ -52,12 +51,16 @@ func NewQueryService(q Query, db database.IDatabase, joinGraph *block.JoinGraph)
 	return &QueryService{Query: q, Db: db, JoinGraph: joinGraph}
 }
 
-func AddSelectToString(member string, genFunc func(string, *block.BlockData) string) (string, error) {
+func AddSelectToString(member string, genFunc func(string, *block.BlockData) (string, error)) (string, error) {
 	blockData := block.GetBlockFromName(block.GetBlockName(member))
 	if blockData == nil {
 		return "", fmt.Errorf("no block with name %v", block.GetBlockName(member))
 	}
-	return genFunc(GetMemberName(member), blockData), nil
+	selectString, err := genFunc(GetMemberName(member), blockData)
+	if err != nil {
+		return "", err
+	}
+	return selectString, nil
 }
 
 func (query *Query) GenerateSelectStage() ([]string, error) {
@@ -84,40 +87,97 @@ func (query *Query) GenerateSelectStage() ([]string, error) {
 func (query *Query) GetStartAndTargetTables() (*block.BlockData, []string) {
 	if len(query.Measures) > 0 {
 		b := block.GetBlockFromName(block.GetBlockName(query.Measures[0]))
-		t := block.GetAllBlockNamesDifferent(b.Name, query.Dimensions)
+		var t []string
+		if len(query.Dimensions) == 0 {
+			t = block.GetAllBlockNamesDifferent(b.Name, query.Measures)
+		} else {
+			t = block.GetAllBlockNamesDifferent(b.Name, query.Dimensions)
+		}
 		return b, t
 	}
 	if len(query.Dimensions) > 0 {
 		b := block.GetBlockFromName(block.GetBlockName(query.Dimensions[0]))
-		t := block.GetAllBlockNamesDifferent(b.Name, query.Measures)
+		var t []string
+		if len(query.Measures) == 0 {
+			t = block.GetAllBlockNamesDifferent(b.Name, query.Dimensions)
+		} else {
+			t = block.GetAllBlockNamesDifferent(b.Name, query.Measures)
+		}
 		return b, t
 	}
 	return nil, nil
 }
 
-func (query *Query) GenerateLeftJoinStage(graph *block.JoinGraph) string {
+func (query *Query) GenerateLeftJoinStage(graph *block.JoinGraph) []string {
 	startTableName, targetTableNames := query.GetStartAndTargetTables()
-
-	return sqlStages.BuildLeftJoinSql(startTableName, targetTableNames, graph)
+	return sqlStages.GetLeftJoinPath(startTableName, targetTableNames, graph)
 }
 
 func (query *Query) GenerateFromStage(graph *block.JoinGraph) string {
 	var result strings.Builder
 
 	result.WriteString(" FROM ")
-	parentTable, _ := query.GetStartAndTargetTables()
-	result.WriteString(fmt.Sprintf("%v as %v", parentTable.Table, parentTable.Name))
+	var path []string
 	if HasTwoDifferentBlocks(query.Dimensions, query.Measures) {
-		result.WriteString(query.GenerateLeftJoinStage(graph))
+		path = query.GenerateLeftJoinStage(graph)
+		if len(path) == 0 {
+			return ""
+		}
+		firstBlock := block.GetBlockFromName(path[0])
+		result.WriteString(fmt.Sprintf("%v as %v", firstBlock.Table, firstBlock.Name))
+		for i := 1; i < len(path); i++ {
+			fromVertex := graph.Vertices[path[i-1]]
+			toVertex := graph.Vertices[path[i]]
+
+			joinParent, err := block.GetBlockJoinFromName(toVertex.Val.Name, fromVertex.Val)
+			if err != nil {
+				joinParent, _ = block.GetBlockJoinFromName(fromVertex.Val.Name, toVertex.Val)
+			}
+			result.WriteString(fmt.Sprintf(" LEFT JOIN %s as %s ON %s.%s = %s.%s",
+				toVertex.Val.Table, toVertex.Val.Name, toVertex.Val.Name,
+				joinParent.LocalField, fromVertex.Val.Name, joinParent.ForeignField))
+		}
+	} else {
+		parentTable, _ := query.GetStartAndTargetTables()
+		result.WriteString(fmt.Sprintf("%s as %s", parentTable.Table, parentTable.Name))
 	}
 	return result.String()
+}
+
+func (query *Query) CountsInMeasures() (int, error) {
+	n := 0
+	for _, measure := range query.Measures {
+		b := block.GetBlockFromName(block.GetBlockName(measure))
+		m, err := block.GetMeasureFromBlock(b, GetMemberName(measure))
+		if err != nil {
+			return 0, err
+		}
+		if MeasureIsAggregated(m) {
+			n++
+		}
+	}
+	return n, nil
+}
+
+func (query *Query) FilterHasAggregated() bool {
+	for _, f := range query.Filters {
+		b := block.GetBlockFromName(block.GetBlockName(f.Member))
+		m, err := block.GetMeasureFromBlock(b, GetMemberName(f.Member))
+		if err != nil {
+			return false
+		}
+		if MeasureIsAggregated(m) {
+			return true
+		}
+	}
+	return false
 }
 
 func (query *Query) GenerateGroupByStage(totalSelect int) string {
 	var result strings.Builder
 
 	result.WriteString(" GROUP BY ")
-	measureLen := len(query.Measures)
+	measureLen, _ := query.CountsInMeasures()
 	i := measureLen
 	if measureLen == 0 {
 		i = 1
@@ -177,7 +237,6 @@ func (query *Query) GenerateOffsetStage() string {
 
 func (query *Query) GenerateTimeDimensionStage(index int) (string, string, error) {
 	timeD := query.TimeDimensions[index]
-	log.Println(timeD.DateRange)
 	if len(timeD.DateRange) < 2 {
 		return "", "", fmt.Errorf("not enough dates in daterange")
 	}
@@ -190,8 +249,7 @@ func (query *Query) GenerateTimeDimensionStage(index int) (string, string, error
 	if dimension == nil {
 		return "", "", fmt.Errorf("dimension not found in block %v", b.Name)
 	}
-	log.Println(b, memberName, dimension)
-	return fmt.Sprintf("date_trunc('%v', (%v.%v :: timestamptz AT TIME ZONE 'UTC')) \"%v.%v\"", timeD.Granularity, b.Name, dimension.Sql, b.Name, memberName), fmt.Sprintf("(%v.%v >= '%v' :: timestamptz AND %v.%v <= '%v' :: timestamptz)", b.Name, dimension.Sql, timeD.DateRange[0], b.Name, dimension.Sql, timeD.DateRange[1]), nil
+	return fmt.Sprintf("date_trunc('%v', (%v.%v :: timestamptz AT TIME ZONE 'UTC')) \"%v_%v_%v\"", timeD.Granularity, b.Name, dimension.Sql, b.Name, memberName, timeD.Granularity), fmt.Sprintf("(%v.%v >= '%v' :: timestamptz AND %v.%v <= '%v' :: timestamptz)", b.Name, dimension.Sql, timeD.DateRange[0], b.Name, dimension.Sql, timeD.DateRange[1]), nil
 }
 
 type FilterContext struct {

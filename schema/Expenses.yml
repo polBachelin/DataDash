@@ -1,0 +1,56 @@
+blocks:
+  - name: Expenses
+    table: expenses
+    joins:
+      - name: Projects
+        local_field: project_id
+        foreign_field: id
+        relationship: one_to_one
+      - name: Accounts
+        local_field: employee_id
+        foreign_field: id
+        relationship: one_to_one
+    measures:
+      - name: count
+        sql: id
+        type: count
+    dimensions:
+      - name: date
+        sql: date
+        type: time
+      - name: type
+        sql: expense_type
+        type: number
+      - name: amount
+        sql: amount
+        time: number
+      - name: created_at
+        sql: created_at
+        type: time
+      - name: updated_at
+        sql: updated_at
+        type: time
+      - name: submitted_at
+        sql: submitted_at
+        type: time
+      - name: approved_at
+        sql: approved_at
+        type: time
+      - name: rejected_at
+        sql: rejected_at
+        type: time
+      - name: rejected_reason
+        sql: rejected_reason
+        type: string
+      - name: paid_at
+        sql: paid_at
+        type: time
+      - name: approved
+        sql: is_approved
+        type: boolean
+      - name: active
+        sql: is_active
+        type: boolean
+      - name: archived
+        sql: is_archived
+        type: boolean

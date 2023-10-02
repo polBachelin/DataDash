@@ -1,0 +1,21 @@
+blocks:
+  - name: Accounts
+    table: accounts
+    joins:
+    measures:
+      - name: count
+        sql: id
+        type: count
+    dimensions:
+      - name: email
+        sql: email
+        type: string
+      - name: firstName
+        sql: firstname
+        type: string
+      - name: lastName
+        sql: lastname
+        type: string
+      - name: manager_id
+        sql: manager_id
+        type: string

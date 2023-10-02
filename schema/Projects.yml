@@ -1,0 +1,60 @@
+blocks:
+  - name: Projects
+    table: projects
+    joins:
+      - name: Departments
+        local_field: department_id
+        foreign_field: id
+        relationship: many_to_one
+      - name: Accounts
+        local_field: manager_id
+        foreign_field: managr_id
+        relationship: one_to_one
+      - name: Partners
+        local_field: client_id
+        foreign_field: id
+        relationship: one_to_one
+    measures:
+      - name: count
+        sql: id
+        type: count
+      - name: amount_sold
+        sql: Projects.amount_sold as "Projects.amount_sold"
+        type: number
+      - name: sold_sum
+        sql: amount_sold
+        type: sum
+      - name: revenue
+        sql: sum(Projects.amount_sold - Projects.allocated_budget) as "Projects.revenue"
+        type: number
+    dimensions:
+      - name: name
+        sql: name
+        type: string
+      - name: budget
+        sql: allocated_budget
+        type: number
+      - name: expenses_budget
+        sql: expenses_budget
+        type: number
+      - name: sold
+        sql: amount_sold
+        type: number
+      - name: start_date
+        sql: project_start_date
+        type: time
+      - name: end_date
+        sql: project_end_date
+        type: time
+      - name: real_start_date
+        sql: real_start_date
+        type: time
+      - name: real_end_date
+        sql: real_end_date
+        type: time
+      - name: is_active
+        sql: is_active
+        type: boolean
+      - name: archived
+        sql: is_archived
+        type: boolean
