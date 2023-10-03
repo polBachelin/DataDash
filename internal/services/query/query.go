@@ -108,7 +108,7 @@ func (query *Query) GetStartAndTargetTables() (*block.BlockData, []string) {
 	return nil, nil
 }
 
-func (query *Query) GenerateLeftJoinStage(graph *block.JoinGraph) []string {
+func (query *Query) GetPathFromGraph(graph *block.JoinGraph) []string {
 	startTableName, targetTableNames := query.GetStartAndTargetTables()
 	return sqlStages.GetLeftJoinPath(startTableName, targetTableNames, graph)
 }
@@ -119,24 +119,11 @@ func (query *Query) GenerateFromStage(graph *block.JoinGraph) string {
 	result.WriteString(" FROM ")
 	var path []string
 	if HasTwoDifferentBlocks(query.Dimensions, query.Measures) {
-		path = query.GenerateLeftJoinStage(graph)
+		path = query.GetPathFromGraph(graph)
 		if len(path) == 0 {
 			return ""
 		}
-		firstBlock := block.GetBlockFromName(path[0])
-		result.WriteString(fmt.Sprintf("%v as %v", firstBlock.Table, firstBlock.Name))
-		for i := 1; i < len(path); i++ {
-			fromVertex := graph.Vertices[path[i-1]]
-			toVertex := graph.Vertices[path[i]]
-
-			joinParent, err := block.GetBlockJoinFromName(toVertex.Val.Name, fromVertex.Val)
-			if err != nil {
-				joinParent, _ = block.GetBlockJoinFromName(fromVertex.Val.Name, toVertex.Val)
-			}
-			result.WriteString(fmt.Sprintf(" LEFT JOIN %s as %s ON %s.%s = %s.%s",
-				toVertex.Val.Table, toVertex.Val.Name, toVertex.Val.Name,
-				joinParent.LocalField, fromVertex.Val.Name, joinParent.ForeignField))
-		}
+		result.WriteString(sqlStages.GenerateJoinClause(path, graph))
 	} else {
 		parentTable, _ := query.GetStartAndTargetTables()
 		result.WriteString(fmt.Sprintf("%s as %s", parentTable.Table, parentTable.Name))

@@ -26,6 +26,7 @@ func GenerateJoinClause(path []string, graph *block.JoinGraph) string {
 			toVertex.Val.Table, toVertex.Val.Name, toVertex.Val.Name,
 			joinParent.LocalField, fromVertex.Val.Name, joinParent.ForeignField))
 	}
+	log.Printf("PATH FOR JOIN : %v", path)
 	return result.String()
 }
 
