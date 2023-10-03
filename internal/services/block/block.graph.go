@@ -97,7 +97,6 @@ func (graph *JoinGraph) DfsWithPath(currentVertex *Vertex, targetVertexName stri
 	visited[currentVertex.Val.Name] = true
 
 	if currentVertex.Val.Name == targetVertexName {
-		log.Printf("Found target vertex : %s", currentVertex.Val.Name)
 		return []string{currentVertex.Val.Name}, true
 	}
 

@@ -10,20 +10,23 @@ import (
 )
 
 func GenerateJoinClause(path []string, graph *block.JoinGraph) string {
-	var joins strings.Builder
+	var result strings.Builder
 
-	for i := 0; i < len(path)-1; i++ {
-		fromVertex := graph.Vertices[path[i]]
-		toVertex := graph.Vertices[path[i+1]]
+	firstBlock := block.GetBlockFromName(path[0])
+	result.WriteString(fmt.Sprintf("%v as %v", firstBlock.Table, firstBlock.Name))
+	for i := 1; i < len(path); i++ {
+		fromVertex := graph.Vertices[path[i-1]]
+		toVertex := graph.Vertices[path[i]]
 
 		joinParent, err := block.GetBlockJoinFromName(toVertex.Val.Name, fromVertex.Val)
 		if err != nil {
 			joinParent, _ = block.GetBlockJoinFromName(fromVertex.Val.Name, toVertex.Val)
 		}
-		joins.WriteString(fmt.Sprintf(" LEFT JOIN %s as %s ON %s.%s = %s.%s", toVertex.Val.Table, toVertex.Val.Name, toVertex.Val.Name, joinParent.LocalField, fromVertex.Val.Name, joinParent.ForeignField))
+		result.WriteString(fmt.Sprintf(" LEFT JOIN %s as %s ON %s.%s = %s.%s",
+			toVertex.Val.Table, toVertex.Val.Name, toVertex.Val.Name,
+			joinParent.LocalField, fromVertex.Val.Name, joinParent.ForeignField))
 	}
-	log.Printf("PATH FOR JOIN : %s", path)
-	return joins.String()
+	return result.String()
 }
 
 func GetLeftJoinPath(startTableBlock *block.BlockData, targetTableNames []string, graph *block.JoinGraph) []string {
